@@ -18,6 +18,7 @@ from ..stores.filesystem import (
 )
 from .provider_dispatcher import DurableProviderDispatcher
 from .runtime_read_model import SqliteObservationReader
+from .m9_repository import SqliteConsoleReader, SqliteRecoveryRepository
 
 
 class SqliteRepositoryFactory:
@@ -56,6 +57,12 @@ class SqliteRepositoryFactory:
 
     def observation_reader(self):
         return SqliteObservationReader()
+
+    def recovery(self):
+        return SqliteRecoveryRepository()
+
+    def console_reader(self):
+        return SqliteConsoleReader()
 
 
 def configure_default_repositories() -> None:

@@ -444,4 +444,30 @@ MIGRATIONS = (
         );
         """,
     ),
+    (
+        9,
+        "m9_review_recovery_v9",
+        """
+        ALTER TABLE confirmations ADD COLUMN decision TEXT NOT NULL DEFAULT '';
+        ALTER TABLE confirmations ADD COLUMN actor TEXT NOT NULL DEFAULT '';
+        ALTER TABLE confirmations ADD COLUMN expected_version INTEGER;
+        ALTER TABLE confirmations ADD COLUMN result_json TEXT NOT NULL DEFAULT '{}';
+        ALTER TABLE confirmations ADD COLUMN updated_at TEXT NOT NULL DEFAULT '';
+
+        CREATE TABLE IF NOT EXISTS recovery_events (
+            recovery_event_id TEXT PRIMARY KEY,
+            product_id TEXT NOT NULL,
+            command TEXT NOT NULL,
+            subject_id TEXT NOT NULL,
+            decision TEXT NOT NULL,
+            actor TEXT NOT NULL DEFAULT '',
+            reason TEXT NOT NULL DEFAULT '',
+            payload_json TEXT NOT NULL DEFAULT '{}',
+            trace_id TEXT NOT NULL DEFAULT '',
+            created_at TEXT NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_recovery_product_created
+            ON recovery_events(product_id, created_at);
+        """,
+    ),
 )

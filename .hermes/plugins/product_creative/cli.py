@@ -31,6 +31,8 @@ CLI_COMMAND_NAMES = (
     "material-card-rebuild", "material-library-map", "task-material-pack", "material-usage",
     "material-feedback", "image-analyze", "visual-align", "video-intent", "video-brief",
     "video-brief-review", "video-brief-revise",
+    "proposal-decide", "brain-rollback", "workflow-retry", "workflow-cancel",
+    "provider-task-refresh", "rule-revoke",
 )
 
 CLI_TOOL_OVERRIDES = {

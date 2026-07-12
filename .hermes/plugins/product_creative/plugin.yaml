@@ -1,7 +1,7 @@
 name: product_creative
-version: 0.1.0
-description: "Product-centered creative workflow plugin for Product Wiki, copy packs, feedback, and evolution proposals."
-author: local
+version: 9.0.0
+description: "Durable AI-driven Product Creative runtime with review, learning, and controlled recovery."
+author: cynic12138
 kind: standalone
 platforms:
   - windows
@@ -86,3 +86,9 @@ provides_tools:
   - product_comparison_package
   - product_feedback_record
   - product_evolve
+  - product_proposal_decide
+  - product_brain_rollback
+  - product_workflow_retry
+  - product_workflow_cancel
+  - product_provider_task_refresh
+  - product_rule_revoke

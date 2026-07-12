@@ -20,7 +20,7 @@ from product_creative.capabilities.registry import command_descriptors
 
 failures = []
 schema_count = 0
-for capability in ("content", "image", "inspiration", "learning", "material", "product", "review", "video"):
+for capability in ("content", "image", "inspiration", "learning", "material", "product", "recovery", "review", "video"):
     schema_path = plugin / "capabilities" / capability / "schemas.py"
     command_path = plugin / "capabilities" / capability / "commands.py"
     if not schema_path.exists():
@@ -49,7 +49,7 @@ for legacy in ("schema_definitions.py", "schema_material.py", "schema_runtime.py
         failures.append(f"legacy central schema module remains: {legacy}")
 
 report = {
-    "success": not failures and schema_count == 78,
+    "success": not failures and schema_count == 84,
     "schema_version": "product_creative.schema_boundary_check.v2",
     "counts": {"capability_schemas": schema_count, "commands": len(command_descriptors())},
     "failures": failures,

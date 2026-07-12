@@ -12,6 +12,7 @@ from typing import Any, Dict, List
 
 from ...common import now_iso
 from ...contracts.models import IntentDecision, WorkflowInstance, WorkflowStatus, WorkflowStep
+from ...contracts.errors import OptimisticVersionConflict
 from .database import SqliteDatabase, runtime_database
 
 
@@ -26,10 +27,6 @@ def _object(value: str | None) -> Dict[str, Any]:
     if not isinstance(payload, dict):
         raise ValueError("SQLite JSON payload must be an object")
     return payload
-
-
-class OptimisticVersionConflict(RuntimeError):
-    pass
 
 
 class SqliteWorkflowRepository:

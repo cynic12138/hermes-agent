@@ -146,10 +146,10 @@ def _proposal_from_feedback(base: Path) -> Dict[str, Any]:
     return proposal_from_regular_feedback(base.name, latest, source_ids, f"proposal-{timestamp()}", now_iso())
 
 
-def evolve_product(product_id: str, apply_id: Optional[str] = None) -> Dict[str, Any]:
+def evolve_product(product_id: str, apply_id: Optional[str] = None, expected_version: int | None = None) -> Dict[str, Any]:
     base = ensure_product(product_id)
     if apply_id:
-        return apply_proposal(base, apply_id)
+        return apply_proposal(base, apply_id, expected_version=expected_version)
 
     proposal = _proposal_from_feedback(base)
     proposal = attach_rule_candidates_to_proposal(base, proposal)
@@ -192,7 +192,7 @@ def _append_confirmed_learning(base: Path, proposal: Dict[str, Any], applied: Li
         page_path.write_text(text, encoding="utf-8")
 
 
-def apply_proposal(base: Path, proposal_id: str) -> Dict[str, Any]:
+def apply_proposal(base: Path, proposal_id: str, expected_version: int | None = None) -> Dict[str, Any]:
     proposal_path = base / "structured" / "evolution_proposals" / f"{proposal_id}.json"
     proposal_records = proposals()
     proposal = proposal_records.get(proposal_id, base.name)
@@ -217,6 +217,12 @@ def apply_proposal(base: Path, proposal_id: str) -> Dict[str, Any]:
     current = brains.current(base.name)
     if not current:
         current = brains.ensure_initial(base.name, read_json(product_state_path(base), {}))
+    if expected_version is not None and int(current["version"]) != int(expected_version):
+        from ...contracts.errors import OptimisticVersionConflict
+
+        raise OptimisticVersionConflict(
+            f"Product Brain '{base.name}' expected version {expected_version}, actual {current['version']}"
+        )
     state = dict(current["state"])
     state, applied = apply_learning_updates(state, proposal)
     state["updated_at"] = now_iso()

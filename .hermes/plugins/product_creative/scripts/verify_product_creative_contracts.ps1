@@ -243,7 +243,7 @@ tools_tree = parse_python("tools.py")
 tool_catalog_tree = parse_python("tool_catalog.py")
 schemas_tree = parse_python("schemas.py")
 capability_schema_trees = [parse_python(f"capabilities/{name}/schemas.py") for name in (
-    "content", "image", "inspiration", "learning", "material", "product", "review", "video"
+    "content", "image", "inspiration", "learning", "material", "product", "recovery", "review", "video"
 )]
 schema_runtime_tree = parse_python("capabilities/product/schemas.py")
 cli_tree = parse_python("cli.py")

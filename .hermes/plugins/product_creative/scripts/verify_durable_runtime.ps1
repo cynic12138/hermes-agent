@@ -44,7 +44,7 @@ with tempfile.TemporaryDirectory(prefix="product-creative-durable-") as td:
     with db.read_session() as connection:
         versions = [row["version"] for row in connection.execute("SELECT version FROM schema_migrations ORDER BY version")]
     checks["migration_versions"] = versions
-    assert versions == list(range(1, 9)), versions
+    assert versions == list(range(1, 10)), versions
 
     original_migrations = database_module.MIGRATIONS
     database_module.MIGRATIONS = original_migrations + ((999, "injected_failure", "CREATE TABLE should_rollback(x); INVALID SQL;"),)

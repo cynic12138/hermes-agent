@@ -60,6 +60,8 @@ class RepositoryFactory(Protocol):
     def receipts(self, product_id: str) -> Any: ...
     def provider_dispatcher(self) -> Any: ...
     def observation_reader(self) -> Any: ...
+    def recovery(self) -> Any: ...
+    def console_reader(self) -> Any: ...
 
 
 _factory: RepositoryFactory | None = None
@@ -122,3 +124,11 @@ def provider_dispatcher():
 
 def observation_reader():
     return _configured().observation_reader()
+
+
+def recovery():
+    return _configured().recovery()
+
+
+def console_reader():
+    return _configured().console_reader()

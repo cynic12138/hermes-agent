@@ -768,7 +768,8 @@ export const en: Translations = {
     emptyTitle: 'Nothing learned yet',
     emptyDesc: 'As Hermes builds skills and memories for your work, they appear here.',
     share: 'Share map',
-    shareHint: 'Copy the code to share this map, or paste one to load. It only includes the layout, not your memory or skill text.',
+    shareHint:
+      'Copy the code to share this map, or paste one to load. It only includes the layout, not your memory or skill text.',
     shareTitle: 'Import / export map',
     sharePlaceholder: 'Paste a map code…',
     copy: 'Copy map code',
@@ -1306,7 +1307,8 @@ export const en: Translations = {
       'new-session': 'New session',
       skills: 'Skills & Tools',
       messaging: 'Messaging',
-      artifacts: 'Artifacts'
+      artifacts: 'Artifacts',
+      'product-creative': 'Product Creative'
     },
     searchAria: 'Search sessions',
     searchPlaceholder: 'Search sessions…',

@@ -1361,10 +1361,7 @@ function backendSupportsServe(backend) {
   let supported = null
   if (backend.root) {
     try {
-      const src = fs.readFileSync(
-        path.join(backend.root, 'hermes_cli', 'subcommands', 'dashboard.py'),
-        'utf8'
-      )
+      const src = fs.readFileSync(path.join(backend.root, 'hermes_cli', 'subcommands', 'dashboard.py'), 'utf8')
       supported = sourceDeclaresServe(src)
     } catch {
       supported = null // source unreadable — fall through to the probe
@@ -2292,9 +2289,7 @@ async function handOffWindowsBootstrapRecovery(reason) {
   // --repair (full venv recreate) and drove reinstall loops. The venv interpreter
   // and the bootstrap-complete marker are present earlier and are better signals.
   const haveRealInstall =
-    fileExists(venvPython) ||
-    fileExists(venvHermes) ||
-    fileExists(path.join(updateRoot, '.hermes-bootstrap-complete'))
+    fileExists(venvPython) || fileExists(venvHermes) || fileExists(path.join(updateRoot, '.hermes-bootstrap-complete'))
   const updaterArgs = haveRealInstall ? ['--update', '--branch', branch] : ['--repair', '--branch', branch]
 
   await releaseBackendLockForUpdate(updateRoot)
@@ -3223,6 +3218,7 @@ function fetchJson(url, token, options = {}) {
         headers: {
           'Content-Type': 'application/json',
           'X-Hermes-Session-Token': token,
+          ...(options.headers || {}),
           ...(body ? { 'Content-Length': String(body.length) } : {})
         }
       },
@@ -4505,6 +4501,9 @@ function fetchJsonViaOauthSession(url, options = {}) {
       redirect: 'follow'
     })
     setJsonRequestHeaders(request)
+    for (const [name, value] of Object.entries(options.headers || {})) {
+      request.setHeader(name, String(value))
+    }
 
     let timedOut = false
     const timer = setTimeout(() => {
@@ -6475,6 +6474,10 @@ ipcMain.handle('hermes:api', async (_event, request) => {
     profileRemoteOverride: profileHasRemoteOverride(profile)
   })
   const url = `${connection.baseUrl}${requestPath}`
+  const headers = {}
+  if (typeof request?.headers?.['X-Hermes-Workspace-Root'] === 'string') {
+    headers['X-Hermes-Workspace-Root'] = request.headers['X-Hermes-Workspace-Root']
+  }
   // OAuth gateways authenticate REST via the HttpOnly session cookie held in
   // the OAuth partition — route through Electron's net stack bound to that
   // session so the cookie attaches automatically. Token/local modes keep using
@@ -6483,12 +6486,14 @@ ipcMain.handle('hermes:api', async (_event, request) => {
     return fetchJsonViaOauthSession(url, {
       method: request?.method,
       body: request?.body,
+      headers,
       timeoutMs
     })
   }
   return fetchJson(url, connection.token, {
     method: request?.method,
     body: request?.body,
+    headers,
     timeoutMs
   })
 })

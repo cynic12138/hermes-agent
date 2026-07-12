@@ -1,0 +1,66 @@
+name: Publish Product Creative plugin
+
+on:
+  push:
+    tags: ['product-creative-v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release tag, for example product-creative-v9.0.0
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - name: Install runtime test dependencies
+        run: python -m pip install pydantic fastapi httpx
+      - name: Verify plugin contracts
+        shell: pwsh
+        run: |
+          ./.hermes/plugins/product_creative/scripts/verify_m9_review_recovery.ps1
+          ./.hermes/plugins/product_creative/scripts/verify_public_surface_golden.ps1
+      - name: Export distribution
+        shell: pwsh
+        run: ./.hermes/plugins/product_creative/scripts/export_distribution.ps1 -OutputDirectory "$env:RUNNER_TEMP/product_creative"
+      - name: Resolve version
+        id: version
+        shell: pwsh
+        run: |
+          $value = if ('${{ github.event_name }}' -eq 'workflow_dispatch') { '${{ inputs.version }}' } else { '${{ github.ref_name }}' }
+          if ($value -notmatch '^product-creative-v\d+\.\d+\.\d+$') { throw "Invalid release tag: $value" }
+          "value=$value" >> $env:GITHUB_OUTPUT
+      - name: Publish generated repository
+        shell: pwsh
+        env:
+          PUBLISH_TOKEN: ${{ secrets.PRODUCT_CREATIVE_PUBLISH_TOKEN }}
+        run: |
+          if (-not $env:PUBLISH_TOKEN) { throw 'PRODUCT_CREATIVE_PUBLISH_TOKEN is required' }
+          $dist = "$env:RUNNER_TEMP/distribution-repo"
+          git clone "https://x-access-token:$env:PUBLISH_TOKEN@github.com/cynic12138/hermes-product-creative.git" $dist
+          Get-ChildItem -LiteralPath $dist -Force | Where-Object Name -ne '.git' | Remove-Item -Recurse -Force
+          Copy-Item "$env:RUNNER_TEMP/product_creative/*" $dist -Recurse -Force
+          git -C $dist config user.name github-actions[bot]
+          git -C $dist config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git -C $dist add --all
+          git -C $dist commit -m "release: ${{ steps.version.outputs.value }} from ${{ github.sha }}"
+          git -C $dist push origin HEAD:main
+          git -C $dist tag -a "${{ steps.version.outputs.value }}" -m "${{ steps.version.outputs.value }}"
+          git -C $dist push origin "${{ steps.version.outputs.value }}"
+      - name: Package release
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "$env:RUNNER_TEMP/product_creative/*" -DestinationPath "$env:RUNNER_TEMP/${{ steps.version.outputs.value }}.zip"
+          (Get-FileHash "$env:RUNNER_TEMP/${{ steps.version.outputs.value }}.zip" -Algorithm SHA256).Hash.ToLower() | Set-Content "$env:RUNNER_TEMP/${{ steps.version.outputs.value }}.sha256"
+      - name: Create distribution release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.PRODUCT_CREATIVE_PUBLISH_TOKEN }}
+        run: gh release create "${{ steps.version.outputs.value }}" "$env:RUNNER_TEMP/${{ steps.version.outputs.value }}.zip" "$env:RUNNER_TEMP/${{ steps.version.outputs.value }}.sha256" --repo cynic12138/hermes-product-creative --title "${{ steps.version.outputs.value }}" --generate-notes

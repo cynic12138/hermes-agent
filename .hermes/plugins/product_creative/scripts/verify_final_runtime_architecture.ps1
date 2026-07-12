@@ -33,7 +33,7 @@ for removed in [
 
 registry = capability_registry()
 actions = action_descriptors()
-if len(registry) != 8 or len(actions) != 45 or len(workflow_fragments()) != 10:
+if len(registry) != 9 or len(actions) != 51 or len(workflow_fragments()) != 10:
     failures.append("capability_registry_count")
 for name, capability in registry.items():
     executor = plugin / "capabilities" / name / "executor.py"
@@ -42,7 +42,7 @@ for name, capability in registry.items():
         failures.append(f"incomplete_capability:{name}")
 
 tool_names = [item.name for item in PRODUCT_TOOL_SPECS]
-if len(tool_names) != 78 or len(set(tool_names)) != 78 or len(CLI_COMMAND_NAMES) != 78:
+if len(tool_names) != 84 or len(set(tool_names)) != 84 or len(CLI_COMMAND_NAMES) != 84:
     failures.append("public_surface_count")
 
 for relative in [
@@ -89,7 +89,7 @@ required_tables = {
     "product_brain_versions", "generation_snapshots", "artifact_records", "material_records",
     "legacy_imports", "migration_backups", "product_leases",
 }
-if migrations != 8 or required_tables - tables:
+if migrations != 9 or required_tables - tables:
     failures.append("sqlite_schema_incomplete")
 if completed_imports < 147 or failed_imports:
     failures.append("legacy_migration_incomplete")

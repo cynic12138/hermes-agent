@@ -11,6 +11,7 @@ from ..contracts.durable import CommandEnvelope, CommandResult
 from ..contracts.models import ActionCommand
 from .action_executor import capability_executor
 from .policy import PolicyEngine
+from ..ports.runtime_repositories import recovery
 
 
 CommandHandler = Callable[[CommandEnvelope], CommandResult]
@@ -37,12 +38,23 @@ class CommandBus:
         if descriptor is not None:
             policy = self._policy.authorize(descriptor, envelope)
             if not policy.allowed:
+                confirmation_id = ""
+                if policy.status == "confirmation_required":
+                    subject_id = next(
+                        (str(envelope.payload.get(key) or "") for key in (
+                            "proposal_id", "rule_id", "workflow_id", "provider_task_id", "target_version"
+                        ) if envelope.payload.get(key) not in (None, "")),
+                        "",
+                    )
+                    confirmation_id = recovery().request_confirmation(
+                        envelope.product_id, envelope.command, subject_id, policy.risk_level, envelope.trace_id
+                    )
                 return CommandResult(
                     command=envelope.command,
                     product_id=envelope.product_id,
                     status="paused" if policy.status == "confirmation_required" else "failed",
                     success=False,
-                    output={"success": False, "policy": policy.model_dump(mode="json")},
+                    output={"success": False, "policy": policy.model_dump(mode="json"), "confirmation_id": confirmation_id},
                     error_code="CONFIRMATION_REQUIRED" if policy.status == "confirmation_required" else "POLICY_BLOCKED",
                     error_message=policy.reason,
                 )

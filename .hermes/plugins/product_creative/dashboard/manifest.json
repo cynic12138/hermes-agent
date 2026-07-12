@@ -1,0 +1,10 @@
+{
+  "name": "product_creative",
+  "label": "Product Creative",
+  "description": "M9 review, diagnostics, and controlled recovery API.",
+  "icon": "Review",
+  "version": "9.0.0",
+  "tab": { "path": "/product-creative", "hidden": true },
+  "entry": "dist/backend-only.js",
+  "api": "plugin_api.py"
+}

@@ -133,7 +133,7 @@ if sorted(WORKFLOW_ACTION_ENUM) != sorted(ACTION_NAMES):
 apply_runtime = actions["apply_evolution_proposal"]
 if not all((apply_runtime.plan_policy, apply_runtime.guard_policy, apply_runtime.missing_input_policy)):
     failures.append("action_extension_policies_missing")
-if len(product_tool_handlers()) != 78 or len(CLI_COMMAND_HANDLERS) != 78:
+if len(product_tool_handlers()) != 84 or len(CLI_COMMAND_HANDLERS) != 84:
     failures.append("unified_tool_cli_surface_drift")
 
 report = {

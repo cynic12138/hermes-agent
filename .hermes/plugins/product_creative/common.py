@@ -8,6 +8,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable
 
+from .workspace import workspace_root
+
 
 TOOLSET = "product_creative"
 PLUGIN_DATA_DIR = Path(".hermes") / "product_creative"
@@ -41,7 +43,7 @@ def slug(value: str) -> str:
 
 
 def products_root() -> Path:
-    root = Path.cwd() / PRODUCTS_DIR
+    root = workspace_root() / PRODUCTS_DIR
     root.mkdir(parents=True, exist_ok=True)
     return root
 

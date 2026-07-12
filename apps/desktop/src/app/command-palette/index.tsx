@@ -66,6 +66,7 @@ import {
   CRON_ROUTE,
   MESSAGING_ROUTE,
   NEW_CHAT_ROUTE,
+  PRODUCT_CREATIVE_ROUTE,
   PROFILES_ROUTE,
   sessionRoute,
   SETTINGS_ROUTE,
@@ -375,6 +376,13 @@ export function CommandPalette() {
             id: 'nav-artifacts',
             label: cc.nav.artifacts.title,
             run: go(ARTIFACTS_ROUTE)
+          },
+          {
+            icon: Package,
+            id: 'nav-product-creative',
+            keywords: ['product', 'creative', 'review', 'recovery'],
+            label: 'Product Creative',
+            run: go(PRODUCT_CREATIVE_ROUTE)
           },
           {
             action: 'nav.cron',

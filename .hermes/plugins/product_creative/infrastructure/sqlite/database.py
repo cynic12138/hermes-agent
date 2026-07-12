@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Iterator
 
 from ...common import now_iso
+from ...workspace import workspace_root
 from .migrations import MIGRATIONS
 
 
@@ -16,7 +17,7 @@ _INIT_LOCK = threading.RLock()
 
 
 def runtime_database_path() -> Path:
-    path = Path.cwd() / ".hermes" / "product_creative" / "runtime.sqlite3"
+    path = workspace_root() / ".hermes" / "product_creative" / "runtime.sqlite3"
     path.parent.mkdir(parents=True, exist_ok=True)
     return path.resolve()
 

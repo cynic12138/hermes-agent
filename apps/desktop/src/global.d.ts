@@ -517,6 +517,7 @@ export interface HermesApiRequest {
   path: string
   method?: string
   body?: unknown
+  headers?: Record<string, string>
   timeoutMs?: number
   // Route this REST call to a specific profile's backend. Omit for the primary
   // (window) backend. Read-only cross-profile data is served by the primary, so
