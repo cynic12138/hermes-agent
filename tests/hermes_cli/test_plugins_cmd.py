@@ -499,7 +499,7 @@ class TestCmdRemove:
 
     @patch("hermes_cli.plugins_cmd._sanitize_plugin_name")
     @patch("hermes_cli.plugins_cmd._plugins_dir")
-    @patch("hermes_cli.plugins_cmd.shutil.rmtree")
+    @patch("hermes_cli.plugins_cmd._rmtree_writable")
     def test_remove_deletes_plugin(self, mock_rmtree, mock_plugins_dir, mock_sanitize):
         from hermes_cli.plugins_cmd import cmd_remove
 
@@ -511,6 +511,21 @@ class TestCmdRemove:
         cmd_remove("test-plugin")
 
         mock_rmtree.assert_called_once_with(mock_target)
+
+    def test_remove_handles_read_only_git_files(self, tmp_path):
+        import stat
+
+        from hermes_cli.plugins_cmd import _rmtree_writable
+
+        plugin = tmp_path / "product_creative"
+        pack = plugin / ".git" / "objects" / "pack" / "plugin.idx"
+        pack.parent.mkdir(parents=True)
+        pack.write_text("index", encoding="utf-8")
+        pack.chmod(stat.S_IREAD)
+
+        _rmtree_writable(plugin)
+
+        assert not plugin.exists()
 
     @patch("hermes_cli.plugins_cmd._sanitize_plugin_name")
     @patch("hermes_cli.plugins_cmd._plugins_dir")

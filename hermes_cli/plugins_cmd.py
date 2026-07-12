@@ -672,6 +672,32 @@ def cmd_update(name: str) -> None:
         console.print(f"[dim]{out}[/dim]")
 
 
+def _rmtree_writable(target: Path) -> None:
+    """Remove a plugin clone, retrying read-only Git files on Windows."""
+    import stat
+
+    def make_writable(func, path, exc):
+        error = exc[1] if isinstance(exc, tuple) else exc
+        if not isinstance(error, PermissionError):
+            raise error
+        try:
+            os.chmod(path, os.stat(path).st_mode | stat.S_IWUSR)
+        except OSError:
+            pass
+        parent = os.path.dirname(path)
+        if parent:
+            try:
+                os.chmod(parent, os.stat(parent).st_mode | stat.S_IWUSR)
+            except OSError:
+                pass
+        func(path)
+
+    try:
+        shutil.rmtree(target, onexc=make_writable)
+    except TypeError:
+        shutil.rmtree(target, onerror=make_writable)
+
+
 def cmd_remove(name: str) -> None:
     """Remove an installed plugin by name."""
     from rich.console import Console
@@ -685,7 +711,7 @@ def cmd_remove(name: str) -> None:
         console.print(f"[red]Error:[/red] {e}")
         sys.exit(1)
 
-    shutil.rmtree(target)
+    _rmtree_writable(target)
     _display_removed(name, plugins_dir)
 
 
