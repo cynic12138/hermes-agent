@@ -111,6 +111,14 @@ docs/superpowers/*
 # also created in-repo when an agent operates in this checkout). Plans, audit
 # logs, and per-session caches are never artifacts of the codebase.
 .hermes/
+!.hermes/
+.hermes/*
+!.hermes/plugins/
+.hermes/plugins/*
+!.hermes/plugins/product_creative/
+!.hermes/plugins/product_creative/**
+.hermes/plugins/product_creative/**/__pycache__/
+.hermes/plugins/product_creative/**/*.pyc
 
 # Desktop/bootstrap install marker written into the managed checkout root by the
 # bootstrap installer. It is Hermes-managed runtime state, never a code change —
