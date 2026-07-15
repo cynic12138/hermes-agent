@@ -72,6 +72,226 @@ class CreativeTaskBrief(ContractModel):
     source: Literal["llm", "rule_fallback", "explicit_action"] = "rule_fallback"
 
 
+class CreativeTaskRequest(ContractModel):
+    """Normalized user goal for a recoverable cross-capability creative task."""
+
+    raw_message: str
+    deliverables: List[Literal["text", "image", "video"]] = Field(default_factory=list)
+    goal_kind: Literal["creative", "understanding"] = "creative"
+    autonomy_mode: Literal["adaptive", "preview_first", "direct"] = "adaptive"
+    requires_fresh_inspiration: bool = False
+    preserve_exact_packaging: bool = False
+
+    @classmethod
+    def from_message(cls, message: str) -> "CreativeTaskRequest":
+        text = message.strip()
+        deliverables: List[Literal["text", "image", "video"]] = []
+        if any(marker in text for marker in ("文案", "文字", "口播", "脚本")):
+            deliverables.append("text")
+        image_output_requested = any(marker in text for marker in ("图片", "产品图", "生图")) or any(
+            marker in text
+            for marker in (
+                "做主图",
+                "生成主图",
+                "设计主图",
+                "做首帧",
+                "生成首帧",
+                "做封面",
+                "生成封面",
+            )
+        )
+        if image_output_requested:
+            deliverables.append("image")
+        if any(marker in text for marker in ("视频", "短片", "成片")):
+            deliverables.append("video")
+        understanding_only = not deliverables and any(
+            marker in text
+            for marker in ("了解产品", "了解这个产品", "认识产品", "产品大脑", "建脑", "补充产品资料")
+        )
+        autonomy_mode = "preview_first" if any(
+            marker in text for marker in ("先给我看", "先看方案", "先看创意", "先确认方案")
+        ) else "adaptive"
+        return cls(
+            raw_message=text,
+            deliverables=deliverables,
+            goal_kind="understanding" if understanding_only else "creative",
+            autonomy_mode=autonomy_mode,
+            requires_fresh_inspiration=any(
+                marker in text for marker in ("今天", "今日", "最近", "最新", "热点", "节日")
+            ),
+            preserve_exact_packaging=any(
+                marker in text
+                for marker in ("包装不能变", "包装不变", "不能改变包装", "主图不能变", "不重绘")
+            ),
+        )
+
+
+class ProductKnowledgeField(ContractModel):
+    key: str
+    label: str
+    status: Literal["CONFIRMED", "INFERRED", "UNKNOWN", "CONFLICTED"]
+    value: Any = None
+    source_ids: List[str] = Field(default_factory=list)
+    blocking: bool = False
+    impact: str = ""
+
+
+class DiscoveryQuestion(ContractModel):
+    question_id: str
+    field_key: str
+    prompt: str
+    priority: int = Field(ge=0)
+    blocking: bool = False
+
+
+class ProductReadinessReport(ContractModel):
+    schema_version: Literal["product_creative.product_readiness.v1"] = (
+        "product_creative.product_readiness.v1"
+    )
+    readiness_id: str
+    task_id: str
+    product_id: str
+    created_at: str
+    deliverables: List[Literal["text", "image", "video"]] = Field(default_factory=list)
+    ready: bool = False
+    fields: List[ProductKnowledgeField] = Field(default_factory=list)
+    blockers: List[str] = Field(default_factory=list)
+    questions: List[DiscoveryQuestion] = Field(default_factory=list)
+    assumptions: List[str] = Field(default_factory=list)
+    artifact_path: str = ""
+
+
+class CreativeTaskPlanStep(ContractModel):
+    stage: Literal[
+        "RESEARCHING",
+        "IDEATING",
+        "PREPARING_ASSETS",
+        "GENERATING",
+        "DELIVERING",
+    ]
+    action: str
+    status: Literal["PENDING", "READY", "BLOCKED", "RUNNING", "COMPLETED", "FAILED"] = "PENDING"
+    guard: Literal["", "task_authorization", "provider_readiness", "human_confirmation"] = ""
+
+
+class CreativeTaskPlan(ContractModel):
+    schema_version: Literal["product_creative.creative_task_plan.v1"] = (
+        "product_creative.creative_task_plan.v1"
+    )
+    task_id: str
+    stages: List[
+        Literal[
+            "UNDERSTANDING",
+            "RESEARCHING",
+            "IDEATING",
+            "PREPARING_ASSETS",
+            "GENERATING",
+            "DELIVERING",
+            "AWAITING_FEEDBACK",
+        ]
+    ] = Field(default_factory=list)
+    actions: List[CreativeTaskPlanStep] = Field(default_factory=list, max_length=24)
+
+
+class CreativeTaskRecord(ContractModel):
+    schema_version: Literal["product_creative.creative_task.v1"] = (
+        "product_creative.creative_task.v1"
+    )
+    task_id: str
+    product_id: str
+    created_at: str
+    updated_at: str
+    status: Literal[
+        "UNDERSTANDING",
+        "NEEDS_INPUT",
+        "READY",
+        "RESEARCHING",
+        "IDEATING",
+        "PREPARING_ASSETS",
+        "GENERATING",
+        "DELIVERING",
+        "AWAITING_FEEDBACK",
+        "COMPLETED",
+        "BLOCKED_PRODUCT",
+        "BLOCKED_AUTHORIZATION",
+        "BLOCKED_PROVIDER",
+        "FAILED_RETRYABLE",
+        "FAILED_FINAL",
+        "CANCELLED",
+    ]
+    current_stage: str
+    request: CreativeTaskRequest
+    readiness: ProductReadinessReport
+    plan: CreativeTaskPlan
+    completed_stages: List[str] = Field(default_factory=list)
+    questions: List[DiscoveryQuestion] = Field(default_factory=list)
+    blocked_reason: str = ""
+    pending_proposal_id: str = ""
+    pending_proposal_kind: Literal["", "discovery", "learning"] = ""
+    authorization_request_id: str = ""
+    authorization_id: str = ""
+    provider: str = ""
+    selected_materials: List[Dict[str, Any]] = Field(default_factory=list)
+    selected_idea: Dict[str, Any] = Field(default_factory=dict)
+    result_descriptors: List[Dict[str, Any]] = Field(default_factory=list)
+    revision_messages: List[str] = Field(default_factory=list)
+    artifact_path: str = ""
+
+
+class DiscoverySessionRecord(ContractModel):
+    schema_version: Literal["product_creative.discovery_session.v1"] = (
+        "product_creative.discovery_session.v1"
+    )
+    task_id: str
+    product_id: str
+    created_at: str
+    updated_at: str
+    turns: List[Dict[str, Any]] = Field(default_factory=list)
+    acknowledged_unknown_fields: List[str] = Field(default_factory=list)
+    artifact_path: str = ""
+
+
+class TaskAuthorizationRequest(ContractModel):
+    schema_version: Literal["product_creative.task_authorization_request.v1"] = (
+        "product_creative.task_authorization_request.v1"
+    )
+    request_id: str
+    task_id: str
+    product_id: str
+    data_sources: List[Literal["web", "xiaohongshu", "douyin"]] = Field(default_factory=list)
+    allow_browser_cookies: bool = False
+    allow_paid_image: bool = False
+    allow_paid_video: bool = False
+    max_image_calls: int = Field(default=0, ge=0, le=20)
+    max_video_calls: int = Field(default=0, ge=0, le=20)
+    created_at: str
+    status: Literal["PENDING", "APPROVED", "REJECTED", "EXPIRED"] = "PENDING"
+    artifact_path: str = ""
+
+
+class TaskAuthorizationRecord(ContractModel):
+    schema_version: Literal["product_creative.task_authorization.v1"] = (
+        "product_creative.task_authorization.v1"
+    )
+    authorization_id: str
+    request_id: str
+    task_id: str
+    product_id: str
+    data_sources: List[Literal["web", "xiaohongshu", "douyin"]] = Field(default_factory=list)
+    allow_browser_cookies: bool = False
+    allow_paid_image: bool = False
+    allow_paid_video: bool = False
+    max_image_calls: int = Field(default=0, ge=0, le=20)
+    max_video_calls: int = Field(default=0, ge=0, le=20)
+    used_image_calls: int = Field(default=0, ge=0)
+    used_video_calls: int = Field(default=0, ge=0)
+    product_brain_writeback: Literal[False] = False
+    created_at: str
+    expires_at: str
+    status: Literal["ACTIVE", "EXPIRED", "REVOKED", "CONSUMED"] = "ACTIVE"
+    artifact_path: str = ""
+
+
 class ActionCommand(ContractModel):
     action: str
     product_id: str

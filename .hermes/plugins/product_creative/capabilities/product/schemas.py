@@ -245,6 +245,19 @@ PRODUCT_WORKFLOW_RUN_SCHEMA = {
                 "description": "Optional ASCII product id when creating from product_query.",
             },
             "max_steps": {"type": "integer", "minimum": 1, "maximum": 10, "default": 5},
+            "task_id": {
+                "type": "string",
+                "description": "Continue an existing recoverable Creative Task.",
+            },
+            "autonomy_mode": {
+                "type": "string",
+                "enum": ["adaptive", "preview_first", "direct"],
+                "default": "adaptive",
+            },
+            "authorization_id": {
+                "type": "string",
+                "description": "Optional authorization bound to this Creative Task; it never authorizes Product Brain writeback.",
+            },
         },
         "required": [],
         "additionalProperties": False,

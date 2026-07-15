@@ -26,14 +26,14 @@
 
 ## 不做
 
-- 未完成 product brief、PRD、UX/架构和自然语言 E2E 设计前实现 M10 对话式产品发现/guided launch。
+- 自动把网页/平台/模型推断写入 Canonical Product Brain。
 - 新 provider/抓取平台/向量库/消息队列。
 - 完整 Web 工作台、多人/租户/权限/计费、云 SLA。
 - 自动发布、自动付费调用、未经确认的 Brain/素材变更。
 
 ## 二期候选
 
-Guided launch、结构化 brief 编辑/结果对比、经确认的 provider/sidecar 扩展、团队/云/平台发布。
+Live 纵向验收、结构化 brief 编辑/结果对比、经确认的 provider/sidecar 扩展、团队/云/平台发布。
 
 ## 新需求准入
 

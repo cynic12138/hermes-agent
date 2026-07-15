@@ -17,6 +17,12 @@ class ProductCreativeConsoleQueries:
     def workflows(self, product_id: str) -> List[Dict[str, Any]]:
         return console_reader().workflows(product_id)
 
+    def creative_tasks(self, product_id: str) -> List[Dict[str, Any]]:
+        return console_reader().creative_tasks(product_id)
+
+    def creative_task(self, product_id: str, task_id: str) -> Dict[str, Any]:
+        return console_reader().creative_task(product_id, task_id)
+
     def workflow(self, workflow_id: str) -> Dict[str, Any]:
         return console_reader().workflow(workflow_id)
 

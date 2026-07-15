@@ -17,7 +17,7 @@
   function mount(root, host) {
     const locale = Object.prototype.hasOwnProperty.call(copy, host.locale) ? host.locale : 'en'
     const c = copy[locale]
-    const state = { tab: 'overview', product: '', products: [], snapshot: null, workflows: [], workflow: null, review: null, assets: null, learning: null, error: '', loading: true, confirmation: null, stopped: false }
+    const state = { tab: 'overview', product: '', products: [], snapshot: null, workflows: [], workflow: null, creativeTasks: [], creativeTask: null, review: null, assets: null, learning: null, error: '', loading: true, confirmation: null, stopped: false }
     let timer = 0
 
     root.innerHTML = `<style>
@@ -51,13 +51,14 @@
         if (force || !state.products.length) await loadProducts()
         if (!state.product) { state.loading = false; return }
         const product = encodeURIComponent(state.product)
-        const base = [api(`/products/${product}/snapshot`), api(`/products/${product}/workflows`)]
+        const base = [api(`/products/${product}/snapshot`), api(`/products/${product}/workflows`), api(`/products/${product}/creative-tasks`)]
         if (state.tab === 'review' || force) base.push(api(`/products/${product}/review-queue`).then(value => { state.review = value }))
         if (state.tab === 'assets' || force) base.push(api(`/products/${product}/assets`).then(value => { state.assets = value }))
         if (state.tab === 'learning' || force) base.push(api(`/products/${product}/learning`).then(value => { state.learning = value }))
-        const [snapshotValue, workflowValue] = await Promise.all(base)
+        const [snapshotValue, workflowValue, creativeTaskValue] = await Promise.all(base)
         state.snapshot = snapshotValue
         state.workflows = workflowValue.workflows || []
+        state.creativeTasks = creativeTaskValue.creative_tasks || []
         state.error = ''
       } catch (cause) {
         state.error = cause instanceof Error ? cause.message : String(cause)
@@ -71,16 +72,19 @@
     async function tick() { await refresh(false); if (!state.stopped) render() }
 
     function header() {
-      const counts = { tasks: state.workflows.length, review: state.review?.proposals?.length || 0, assets: (state.assets?.artifacts?.length || 0) + (state.assets?.materials?.length || 0), learning: state.learning?.rules?.length || 0 }
+      const counts = { tasks: state.workflows.length + state.creativeTasks.length, review: state.review?.proposals?.length || 0, assets: (state.assets?.artifacts?.length || 0) + (state.assets?.materials?.length || 0), learning: state.learning?.rules?.length || 0 }
       return `<div class="pc-head"><h1>Product Creative</h1><select data-change="product">${state.products.map(item => `<option value="${escape(item.product_id)}" ${item.product_id === state.product ? 'selected' : ''}>${escape(item.product_id)}</option>`).join('')}</select><span class="pc-status">v${escape(state.snapshot?.brain?.version || '-')}</span><span class="pc-spacer"></span><button class="pc-btn" data-action="refresh">${c.refresh}</button><button class="pc-btn" data-action="chat">${c.continueChat}</button></div><div class="pc-tabs">${['overview','tasks','review','assets','learning'].map(tab => `<button data-tab="${tab}" aria-selected="${state.tab === tab}">${c[tab]}${counts[tab] === undefined ? '' : `<span class="pc-count">${counts[tab]}</span>`}</button>`).join('')}</div>${state.error ? `<div class="pc-error">${escape(state.error)}</div>` : ''}`
     }
 
     function overview() {
-      return `<div class="pc-grid"><section class="pc-section"><h2>Product Brain</h2><div class="pc-rows"><div class="pc-row"><div class="pc-grow"><div class="pc-metric">v${escape(state.snapshot?.brain?.version || '-')}</div><div class="pc-muted">${escape(state.snapshot?.brain?.state?.name || state.product)}</div></div></div></div></section><section class="pc-section"><h2>Attention</h2><div class="pc-grid pc-rows"><div class="pc-row"><div><div class="pc-metric">${state.snapshot?.attention?.open_workflows || 0}</div><div class="pc-muted">Open workflows</div></div></div><div class="pc-row"><div><div class="pc-metric">${state.snapshot?.attention?.pending_proposals || 0}</div><div class="pc-muted">Pending proposals</div></div></div></div></section></div>`
+      const latest = state.creativeTasks[0]
+      const readiness = latest?.readiness || {}
+      return `<div class="pc-grid"><section class="pc-section"><h2>Product Brain</h2><div class="pc-rows"><div class="pc-row"><div class="pc-grow"><div class="pc-metric">v${escape(state.snapshot?.brain?.version || '-')}</div><div class="pc-muted">${escape(state.snapshot?.brain?.state?.name || state.product)}</div></div></div></div></section><section class="pc-section"><h2>Product Readiness</h2>${latest ? `<div class="pc-rows"><div class="pc-row"><div class="pc-grow"><div class="pc-title">${escape(latest.request?.raw_message || latest.task_id)}</div><div class="pc-muted">${escape((readiness.blockers || []).join(' · ') || 'No product blocker')}</div></div>${status(readiness.ready ? 'ready' : latest.status)}</div>${rows(readiness.questions, item => `<div class="pc-row"><div class="pc-grow">${escape(item.prompt)}</div>${status(item.field_key)}</div>`)}</div>` : '<div class="pc-empty">No Creative Task readiness yet</div>'}</section><section class="pc-section"><h2>Attention</h2><div class="pc-grid pc-rows"><div class="pc-row"><div><div class="pc-metric">${state.snapshot?.attention?.open_workflows || 0}</div><div class="pc-muted">Open workflows</div></div></div><div class="pc-row"><div><div class="pc-metric">${state.snapshot?.attention?.pending_proposals || 0}</div><div class="pc-muted">Pending proposals</div></div></div></div></section></div>`
     }
 
     function tasks() {
-      return `<div class="pc-split"><section>${rows(state.workflows, item => `<button class="pc-row pc-btn" style="width:100%;text-align:left" data-workflow="${escape(item.workflow_id)}"><span class="pc-grow"><span class="pc-title">${escape(item.definition)}</span><span class="pc-muted">${escape(item.workflow_id)}</span></span>${status(item.status)}</button>`)}</section><section class="pc-section"><h2>Workflow detail</h2>${state.workflow ? `<div class="pc-actions"><button class="pc-btn" data-command="retry" data-id="${escape(state.workflow.workflow?.workflow_id || '')}">${c.retry}</button><button class="pc-btn" data-command="cancel" data-id="${escape(state.workflow.workflow?.workflow_id || '')}">${c.cancel}</button>${(state.workflow.provider_tasks || []).map(task => `<button class="pc-btn" data-command="provider" data-id="${escape(task.provider_task_id)}">${c.providerRefresh}</button>`).join('')}</div><pre class="pc-json">${escape(JSON.stringify(state.workflow, null, 2))}</pre>` : '<div class="pc-empty">Select a workflow</div>'}</section></div>`
+      const creativeDetail = state.creativeTask ? `<div class="pc-rows"><div class="pc-row"><div class="pc-grow"><div class="pc-title">${escape(state.creativeTask.request?.raw_message || state.creativeTask.task_id)}</div><div class="pc-muted">Stage: ${escape(state.creativeTask.current_stage)} · ${escape(state.creativeTask.blocked_reason || 'No blocker')}</div></div>${status(state.creativeTask.status)}</div></div><h2 style="margin-top:16px">Plan stages</h2>${rows(state.creativeTask.plan?.actions, item => `<div class="pc-row"><div class="pc-grow"><div class="pc-title">${escape(item.action)}</div><div class="pc-muted">${escape(item.stage)}</div></div>${status(item.status)}</div>`)}<h2 style="margin-top:16px">Authorization and delivery</h2><pre class="pc-json">${escape(JSON.stringify({ authorization_request_id: state.creativeTask.authorization_request_id, authorization_id: state.creativeTask.authorization_id, selected_materials: state.creativeTask.selected_materials, selected_idea: state.creativeTask.selected_idea, results: state.creativeTask.result_descriptors }, null, 2))}</pre>` : '<div class="pc-empty">Select a Creative Task</div>'
+      return `<div class="pc-split"><section class="pc-section"><h2>Creative Tasks</h2>${rows(state.creativeTasks, item => `<button class="pc-row pc-btn" style="width:100%;text-align:left" data-creative-task="${escape(item.task_id)}"><span class="pc-grow"><span class="pc-title">${escape(item.request?.raw_message || item.task_id)}</span><span class="pc-muted">${escape(item.current_stage || '')}</span></span>${status(item.status)}</button>`)}<h2 style="margin-top:16px">Durable workflows</h2>${rows(state.workflows, item => `<button class="pc-row pc-btn" style="width:100%;text-align:left" data-workflow="${escape(item.workflow_id)}"><span class="pc-grow"><span class="pc-title">${escape(item.definition)}</span><span class="pc-muted">${escape(item.workflow_id)}</span></span>${status(item.status)}</button>`)}</section><section><section class="pc-section"><h2>Creative Task detail</h2>${creativeDetail}</section><section class="pc-section" style="margin-top:20px"><h2>Workflow detail</h2>${state.workflow ? `<div class="pc-actions"><button class="pc-btn" data-command="retry" data-id="${escape(state.workflow.workflow?.workflow_id || '')}">${c.retry}</button><button class="pc-btn" data-command="cancel" data-id="${escape(state.workflow.workflow?.workflow_id || '')}">${c.cancel}</button>${(state.workflow.provider_tasks || []).map(task => `<button class="pc-btn" data-command="provider" data-id="${escape(task.provider_task_id)}">${c.providerRefresh}</button>`).join('')}</div><pre class="pc-json">${escape(JSON.stringify(state.workflow, null, 2))}</pre>` : '<div class="pc-empty">Select a workflow</div>'}</section></section></div>`
     }
 
     function assetRow(item) {
@@ -91,16 +95,19 @@
     }
 
     function review() {
-      return `<section class="pc-section"><h2>Proposals</h2>${rows(state.review?.proposals, item => { const id = idOf(item, 'proposal_id', 'id'); return `<div class="pc-row"><div class="pc-grow"><div class="pc-title">${escape(id)}</div>${status(item.risk_level)}</div><button class="pc-btn" data-proposal="reject" data-id="${escape(id)}">${c.reject}</button><button class="pc-btn pc-primary" data-proposal="accept" data-id="${escape(id)}">${c.accept}</button></div>` })}</section><section class="pc-section" style="margin-top:20px"><h2>Recent results</h2>${rows(state.review?.results, assetRow)}</section>`
+      const taskReviews = state.creativeTasks.filter(item => item.pending_proposal_id || item.status === 'NEEDS_INPUT' || item.request?.autonomy_mode === 'preview_first')
+      return `<section class="pc-section"><h2>Creative Task review</h2>${rows(taskReviews, item => `<div class="pc-row"><div class="pc-grow"><div class="pc-title">${escape(item.request?.raw_message || item.task_id)}</div><div class="pc-muted">${escape(item.blocked_reason || item.pending_proposal_kind || 'Preview requested')}</div></div>${status(item.status)}</div>`)}</section><section class="pc-section" style="margin-top:20px"><h2>Proposals</h2>${rows(state.review?.proposals, item => { const id = idOf(item, 'proposal_id', 'id'); return `<div class="pc-row"><div class="pc-grow"><div class="pc-title">${escape(id)}</div>${status(item.risk_level)}</div><button class="pc-btn" data-proposal="reject" data-id="${escape(id)}">${c.reject}</button><button class="pc-btn pc-primary" data-proposal="accept" data-id="${escape(id)}">${c.accept}</button></div>` })}</section><section class="pc-section" style="margin-top:20px"><h2>Recent results</h2>${rows(state.review?.results, assetRow)}</section>`
     }
 
     function assets() {
-      return `<div class="pc-grid"><section class="pc-section"><h2>Artifacts</h2>${rows(state.assets?.artifacts, assetRow)}</section><section class="pc-section"><h2>Materials</h2>${rows(state.assets?.materials, assetRow)}</section></div>`
+      const taskAssets = state.creativeTasks.flatMap(task => (task.selected_materials || []).map(item => ({ ...item, task_id: task.task_id })))
+      return `<div class="pc-grid"><section class="pc-section"><h2>Task-selected inputs</h2>${rows(taskAssets, item => `<div class="pc-row"><div class="pc-grow"><div class="pc-title">${escape(item.material_id || item.role)}</div><div class="pc-muted">${escape(item.role || '')} · ${escape(item.task_id)}</div></div>${status('selected')}</div>`)}</section><section class="pc-section"><h2>Artifacts</h2>${rows(state.assets?.artifacts, assetRow)}</section><section class="pc-section"><h2>Materials</h2>${rows(state.assets?.materials, assetRow)}</section></div>`
     }
 
     function learning() {
       const current = Number(state.snapshot?.brain?.version || 0)
-      return `<div class="pc-grid"><section class="pc-section"><h2>Brain versions</h2>${rows(state.learning?.versions, item => `<div class="pc-row"><div class="pc-grow">Version ${escape(item.version)} ${status(item.change_kind)}</div>${Number(item.version) !== current ? `<button class="pc-btn" data-version="${escape(item.version)}">${c.rollback}</button>` : ''}</div>`)}</section><section class="pc-section"><h2>Rules</h2>${rows(state.learning?.rules, item => { const id = idOf(item, 'rule_id', 'id'); return `<div class="pc-row"><div class="pc-grow"><div class="pc-title">${escape(id)}</div>${status(item.status)}</div>${item.status !== 'revoked' ? `<button class="pc-btn" data-rule="${escape(id)}">${c.revoke}</button>` : ''}</div>` })}</section></div>`
+      const taskLearning = state.creativeTasks.flatMap(task => (task.result_descriptors || []).filter(item => ['task_revision', 'product_brain_learning_confirmation'].includes(item.type)).map(item => ({ ...item, task_id: task.task_id })))
+      return `<div class="pc-grid"><section class="pc-section"><h2>Task feedback impact</h2>${rows(taskLearning, item => `<div class="pc-row"><div class="pc-grow"><div class="pc-title">${escape(item.message || item.proposal_id || item.type)}</div><div class="pc-muted">${escape(item.task_id)} · Brain writeback: ${escape(item.product_brain_writeback ?? item.status)}</div></div>${status(item.scope || item.status)}</div>`)}</section><section class="pc-section"><h2>Brain versions</h2>${rows(state.learning?.versions, item => `<div class="pc-row"><div class="pc-grow">Version ${escape(item.version)} ${status(item.change_kind)}</div>${Number(item.version) !== current ? `<button class="pc-btn" data-version="${escape(item.version)}">${c.rollback}</button>` : ''}</div>`)}</section><section class="pc-section"><h2>Rules</h2>${rows(state.learning?.rules, item => { const id = idOf(item, 'rule_id', 'id'); return `<div class="pc-row"><div class="pc-grow"><div class="pc-title">${escape(id)}</div>${status(item.status)}</div>${item.status !== 'revoked' ? `<button class="pc-btn" data-rule="${escape(id)}">${c.revoke}</button>` : ''}</div>` })}</section></div>`
     }
 
     function render() {
@@ -147,7 +154,7 @@
 
     shell.addEventListener('change', event => {
       const target = event.target
-      if (target?.dataset?.change === 'product') { state.product = target.value; state.workflow = null; localStorage.setItem(`product-creative:active:${host.workspaceRoot}`, state.product); void invalidate() }
+      if (target?.dataset?.change === 'product') { state.product = target.value; state.workflow = null; state.creativeTask = null; localStorage.setItem(`product-creative:active:${host.workspaceRoot}`, state.product); void invalidate() }
       if (target?.dataset?.confirmReason !== undefined && state.confirmation) state.confirmation.reason = target.value
     })
     shell.addEventListener('input', event => { if (event.target?.dataset?.confirmReason !== undefined && state.confirmation) state.confirmation.reason = event.target.value })
@@ -163,6 +170,7 @@
         else void mutate(state.confirmation.title, state.confirmation.path, state.confirmation.body, true)
       }
       if (target.dataset.workflow) void api(`/workflows/${encodeURIComponent(target.dataset.workflow)}`).then(value => { state.workflow = value; render() }).catch(cause => { state.error = String(cause); render() })
+      if (target.dataset.creativeTask) void api(`/products/${encodeURIComponent(state.product)}/creative-tasks/${encodeURIComponent(target.dataset.creativeTask)}`).then(value => { state.creativeTask = value; render() }).catch(cause => { state.error = String(cause); render() })
       const version = Number(state.snapshot?.brain?.version || 0)
       if (target.dataset.proposal) void mutate(target.dataset.proposal === 'accept' ? c.accept : c.reject, `/proposals/${encodeURIComponent(target.dataset.id)}/decision`, { product_id: state.product, decision: target.dataset.proposal, expected_version: version }, false)
       if (target.dataset.version) void mutate(c.rollback, `/products/${encodeURIComponent(state.product)}/brain/rollback`, { target_version: Number(target.dataset.version), expected_version: version }, false)

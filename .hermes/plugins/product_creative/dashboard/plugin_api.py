@@ -90,6 +90,19 @@ def workflows(product_id: str, _root: Path = Depends(_workspace)):
     return {"workflows": _read(lambda: queries.workflows(product_id))}
 
 
+@router.get("/products/{product_id}/creative-tasks")
+def creative_tasks(product_id: str, _root: Path = Depends(_workspace)):
+    return {"creative_tasks": _read(lambda: queries.creative_tasks(product_id))}
+
+
+@router.get("/products/{product_id}/creative-tasks/{task_id}")
+def creative_task(product_id: str, task_id: str, _root: Path = Depends(_workspace)):
+    payload = _read(lambda: queries.creative_task(product_id, task_id))
+    if not payload:
+        raise HTTPException(status_code=404, detail="Creative Task not found")
+    return payload
+
+
 @router.get("/workflows/{workflow_id}")
 def workflow(workflow_id: str, _root: Path = Depends(_workspace)):
     payload = _read(lambda: queries.workflow(workflow_id))

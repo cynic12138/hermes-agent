@@ -75,7 +75,14 @@ def action_definitions() -> Iterable[ActionRuntimeDefinition]:
         ActionRuntimeDefinition("record_video_result_feedback", lambda args: _result_feedback(args, _VIDEO_FIELDS)),
         ActionRuntimeDefinition("record_video_brief_feedback", _video_brief_feedback),
         ActionRuntimeDefinition("record_channel_feedback", _channel_feedback),
-        ActionRuntimeDefinition("create_evolution_proposal", lambda args: evolve_product(text(args.get("product_id"))), auto_advance=True),
+        ActionRuntimeDefinition(
+            "create_evolution_proposal",
+            lambda args: evolve_product(
+                text(args.get("product_id")),
+                source_feedback_id=text(args.get("source_feedback_id")),
+            ),
+            auto_advance=True,
+        ),
         ActionRuntimeDefinition(
             "apply_evolution_proposal",
             lambda args: evolve_product(text(args.get("product_id")), text(args.get("apply_id"))),

@@ -24,6 +24,24 @@ const responseFor = (path: string) => {
     return { brain: { version: 3, state: { name: 'Demo Product' } }, attention: { open_workflows: 1, pending_proposals: 1 } }
   }
   if (path.endsWith('/workflows')) return { workflows: [{ workflow_id: 'wf-1', definition: 'Create image', status: 'waiting_review' }] }
+  if (path.endsWith('/creative-tasks')) {
+    return {
+      creative_tasks: [{
+        task_id: 'task-1', status: 'NEEDS_INPUT', current_stage: 'UNDERSTANDING',
+        request: { raw_message: 'Create today product video', autonomy_mode: 'adaptive' },
+        readiness: { ready: false, blockers: ['Current packaging is missing'], questions: [{ field_key: 'current_packaging', prompt: 'Which packaging is current?' }] },
+        plan: { actions: [] }, result_descriptors: [], selected_materials: []
+      }]
+    }
+  }
+  if (path.includes('/creative-tasks/task-1')) {
+    return {
+      task_id: 'task-1', status: 'NEEDS_INPUT', current_stage: 'UNDERSTANDING', blocked_reason: 'Current packaging is missing',
+      request: { raw_message: 'Create today product video', autonomy_mode: 'adaptive' },
+      readiness: { ready: false }, plan: { actions: [{ action: 'prepare_task_material_pack', stage: 'PREPARING_ASSETS', status: 'PENDING' }] },
+      result_descriptors: [], selected_materials: []
+    }
+  }
   if (path.endsWith('/review-queue')) return { proposals: [{ proposal_id: 'proposal-1', risk_level: 'high' }], results: [] }
   if (path.endsWith('/assets')) return { artifacts: [{ record_id: 'asset-1', relative_path: 'artifacts/a.png', type: 'file' }], materials: [] }
   if (path.endsWith('/learning')) return { versions: [{ version: 2, change_kind: 'proposal' }, { version: 3, change_kind: 'current' }], rules: [{ rule_id: 'rule-1', status: 'active' }] }
@@ -76,9 +94,11 @@ describe('Product Creative Desktop bundle', () => {
     expect(registration.apiVersion).toBe(1)
     expect(registration.name).toBe('product_creative')
     await screen.findByText('Product Brain')
+    expect(screen.getByText('Product Readiness')).toBeTruthy()
+    expect(screen.getByText('Create today product video')).toBeTruthy()
 
     for (const [tab, heading] of [
-      ['Tasks', 'Workflow detail'],
+      ['Tasks', 'Creative Tasks'],
       ['Review queue', 'Proposals'],
       ['Assets', 'Artifacts'],
       ['Learning', 'Brain versions'],
@@ -87,6 +107,11 @@ describe('Product Creative Desktop bundle', () => {
       fireEvent.click(screen.getByRole('button', { name: new RegExp(`^${tab}`) }))
       await screen.findByText(heading)
     }
+
+    fireEvent.click(screen.getByRole('button', { name: /^Tasks/ }))
+    await screen.findByText('Creative Tasks')
+    fireEvent.click(screen.getByRole('button', { name: /Create today product video/ }))
+    await screen.findByText('prepare_task_material_pack')
   })
 
   it('renders loading, empty, and API error states', async () => {

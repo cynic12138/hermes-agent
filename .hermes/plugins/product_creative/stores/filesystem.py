@@ -147,6 +147,7 @@ class FileSystemProductBrainRepository:
     def __init__(self, product_root: Path):
         self._product_root = product_root.resolve()
         self._state_path = self._product_root / "structured" / "product_state.json"
+        self._draft_state_path = self._product_root / "structured" / "draft_product_state.json"
         self._wiki_root = self._product_root / "wiki"
         self._versions = SqliteProductBrainRepository()
 
@@ -162,6 +163,15 @@ class FileSystemProductBrainRepository:
         )
         write_json_atomic(self._state_path, state)
         return str(self._state_path)
+
+    def load_draft_state(self) -> Dict[str, Any]:
+        if self._draft_state_path.exists():
+            return read_json_strict(self._draft_state_path)
+        return dict(self.load_state())
+
+    def save_draft_state(self, state: Dict[str, Any]) -> str:
+        write_json_atomic(self._draft_state_path, state)
+        return str(self._draft_state_path)
 
     def page_path(self, relative_path: str) -> str:
         path = (self._wiki_root / relative_path).resolve()

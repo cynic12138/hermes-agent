@@ -127,6 +127,13 @@ def record_result_feedback(
     clean_like_reasons = [str(item) for item in like_reasons or [] if str(item).strip()]
     clean_dislike_reasons = [str(item) for item in dislike_reasons or [] if str(item).strip()]
     ready_for_feedback = bool(result_payload.get("review", {}).get("ready_for_feedback"))
+    raw_brief_type = str(result_payload.get("brief_type") or "").lower()
+    if "video" in raw_brief_type or "generated_videos" in result_path.parts:
+        brief_type = "video"
+    elif "image" in raw_brief_type or "generated_images" in result_path.parts:
+        brief_type = "image"
+    else:
+        brief_type = raw_brief_type
     feedback_id = f"result-feedback-{timestamp()}"
     feedback = {
         "schema_version": RESULT_FEEDBACK_SCHEMA_VERSION,
@@ -136,7 +143,7 @@ def record_result_feedback(
         "source_result_id": result_payload.get("result_id", result_path.stem),
         "source_result_path": _rel(base, result_path),
         "job_id": result_payload.get("job_id", ""),
-        "brief_type": result_payload.get("brief_type", ""),
+        "brief_type": brief_type,
         "provider": result_payload.get("provider", ""),
         "result_ready_for_feedback": ready_for_feedback,
         "selected": bool(selected),

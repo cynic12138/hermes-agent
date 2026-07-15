@@ -7,11 +7,11 @@ import shutil
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from ...common import ensure_product, now_iso, product_state_path, read_json, read_product_state, timestamp, update_index_and_log, write_json
-from ...brain.provenance import build_product_fingerprint, register_source as _register_source
+from ...common import ensure_product, now_iso, product_state_path, timestamp, update_index_and_log
+from ...brain.provenance import register_source as _register_source
 from ...brain.wiki import render_product_pages
 from ...context_safety import apply_generation_safe_state, generation_safe_list
-from ...ports.runtime_repositories import brain_documents
+from ...ports.runtime_repositories import artifact_documents, brain_documents
 
 
 __all__ = ["ingest_product"]
@@ -111,7 +111,8 @@ def ingest_product(product_id: str, text: Optional[str], images: Optional[List[s
         else:
             image_entries.append({"source": item, "stored": "", "missing": True})
 
-    state = read_product_state(base)
+    documents = brain_documents(base)
+    state = documents.load_draft_state()
     summary = _summarize_source(loaded["content"])
     if summary["brief"]:
         state.setdefault("basic", {})["brief"] = summary["brief"]
@@ -137,8 +138,22 @@ def ingest_product(product_id: str, text: Optional[str], images: Optional[List[s
     state["status"] = "draft"
     state.setdefault("assets", {})["images"] = image_entries
     state = apply_generation_safe_state(state)
-    brain_documents(base).save_state(state)
-    build_product_fingerprint(base.name)
+    draft_state_path = documents.save_draft_state(state)
+    draft_id = f"draft-{stamp}"
+    draft_artifact_path = artifact_documents(base).save(
+        "draft_understanding",
+        draft_id,
+        {
+            "schema_version": "product_creative.draft_understanding.v1",
+            "draft_id": draft_id,
+            "product_id": base.name,
+            "created_at": now_iso(),
+            "status": "DRAFT",
+            "source_paths": list(sources),
+            "state": state,
+            "not_canonical_product_fact": True,
+        },
+    )
 
     render_product_pages(base, state)
     update_index_and_log(base, "ingest", "Product source material", sources or ["No source content saved"])
@@ -148,6 +163,9 @@ def ingest_product(product_id: str, text: Optional[str], images: Optional[List[s
         "sources": sources,
         "image_count": len(image_entries),
         "product_state": str(product_state_path(base)),
+        "draft_product_state": draft_state_path,
+        "draft_understanding": draft_artifact_path,
+        "canonical_brain_changed": False,
     }
 
 

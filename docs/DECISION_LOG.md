@@ -13,5 +13,10 @@
 | 2026-07-15 | 版本采用 `9.1.0-alpha.1` | 必须从独立仓库已有 `9.0.0` 单调升级 | `0.9.0-alpha.1` | 安装/升级/CI/分发元数据 | 用户批准计划；`plugin.yaml:2`；distribution validator | 是 |
 | 2026-07-15 | 内层插件目录是唯一源码真源 | 独立仓库是自动生成分发物，避免双向维护和漂移 | 在独立仓库直接开发业务代码 | 发布/恢复/维护 | 用户批准计划；publish workflow；`SOURCE.json` contract | 是 |
 | 2026-07-15 | Desktop v1 仅加载 enabled bundled/user plugin | project plugin 不得向 Desktop 注入同源可执行代码；enabled plugin 明确视为受信任 | 自动执行 project plugin 页面 | Desktop security | `web_server.py`；registry/API tests；离线 user-plugin E2E | 是 |
+| 2026-07-15 | M10 合并“建脑”和“自主创作” | 产品认知必须直接服务任务，任务反馈又安全反哺认知 | 独立建脑向导、单一“今日视频”命令 | product/runtime/UX | 用户批准的 M10 计划；`docs/M10_PRODUCT_COGNITION_AUTONOMOUS_CREATION_IMPLEMENTATION.md` | 是 |
+| 2026-07-15 | Evidence/Draft/Canonical/Task Context 四层隔离 | 临时搜索、模型推断和单次创意不能污染长期产品事实 | 网页预填 Brain、ingest 直接写 Canonical | brain/ingest/learning | `brain/discovery.py`；`capabilities/product/ingestion_service.py`；M10 tests | 是 |
+| 2026-07-15 | M10 复用单入口与能力注册表 | 保持 Hermes 窄腰并避免平行 Agent/workflow | 新聊天工具、新任务 DB、自由 LLM 工具执行 | public surface/runtime | `runtime/agent.py`；`application/planner.py`；84/84 golden | 是 |
+| 2026-07-15 | 外部副作用采用任务授权，Brain 写回独立确认 | 费用/Cookie/数据源授权只对当前任务有效；长期认知风险更高 | 一次授权同时允许抓取、付费和 Brain 写回 | authorization/provider/learning | `runtime/authorization.py`；M10 authorization/learning tests | 是 |
+| 2026-07-15 | Live Provider 双重 opt-in | 防止仅有授权记录就从开发/恢复环境发起真实调用 | 授权后自动打开 Provider | provider safety/recovery | `runtime/creative_tasks.py`；Fake Gateway test | 是 |
 
 无法确认来源或理由的历史选择未写成确定事实。

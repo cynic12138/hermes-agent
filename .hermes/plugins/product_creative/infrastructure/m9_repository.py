@@ -196,6 +196,25 @@ class SqliteConsoleReader:
                 (product_id,),
             )]
 
+    def creative_tasks(self, product_id: str) -> List[Dict[str, Any]]:
+        with self._database.read_session() as connection:
+            rows = connection.execute(
+                """SELECT payload_json FROM artifact_records
+                   WHERE product_id=? AND artifact_type='creative_tasks'
+                   ORDER BY created_at DESC, artifact_id DESC""",
+                (product_id,),
+            ).fetchall()
+        return [_object(row["payload_json"]) for row in rows]
+
+    def creative_task(self, product_id: str, task_id: str) -> Dict[str, Any]:
+        with self._database.read_session() as connection:
+            row = connection.execute(
+                """SELECT payload_json FROM artifact_records
+                   WHERE product_id=? AND artifact_type='creative_tasks' AND artifact_id=?""",
+                (product_id, task_id),
+            ).fetchone()
+        return _object(row["payload_json"]) if row else {}
+
     def workflow(self, workflow_id: str) -> Dict[str, Any]:
         with self._database.read_session() as connection:
             workflow = connection.execute("SELECT * FROM workflow_instances WHERE workflow_id=?", (workflow_id,)).fetchone()

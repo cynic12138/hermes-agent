@@ -35,7 +35,7 @@ from .feedback_repository import (
 __all__ = ["apply_proposal", "evolve_product"]
 
 
-def _proposal_from_feedback(base: Path) -> Dict[str, Any]:
+def _proposal_from_feedback(base: Path, source_feedback_id: str = "") -> Dict[str, Any]:
     entries = read_feedback_entries(base)
     result_entries = [
         item for item in read_result_feedback_entries(base)
@@ -57,6 +57,44 @@ def _proposal_from_feedback(base: Path) -> Dict[str, Any]:
         item for item in read_material_feedback_entries(base)
         if item.get("eligible_for_evolution_proposal")
     ]
+    if source_feedback_id:
+        selected_result = next(
+            (
+                item for item in result_entries
+                if str(item.get("feedback_id") or "") == source_feedback_id
+            ),
+            {},
+        )
+        if not selected_result:
+            raise FileNotFoundError(
+                f"eligible result feedback '{source_feedback_id}' does not exist"
+            )
+        evaluation = _latest_result_evaluation_for_feedback(base, selected_result)
+        source_ref = str(
+            selected_result.get("feedback_path")
+            or selected_result.get("source_result_path")
+            or selected_result.get("result_path")
+            or ""
+        )
+        source_ids = []
+        if source_ref:
+            source_ids.append(
+                _register_source(
+                    base,
+                    "result_feedback",
+                    source_ref,
+                    "medium",
+                    source_feedback_id,
+                )
+            )
+        return proposal_from_result_feedback(
+            base.name,
+            selected_result,
+            evaluation,
+            source_ids,
+            f"proposal-{timestamp()}",
+            now_iso(),
+        )
     latest_regular = entries[-1] if entries else {}
     latest_result = result_entries[-1] if result_entries else {}
     latest_channel = channel_entries[-1] if channel_entries else {}
@@ -146,12 +184,17 @@ def _proposal_from_feedback(base: Path) -> Dict[str, Any]:
     return proposal_from_regular_feedback(base.name, latest, source_ids, f"proposal-{timestamp()}", now_iso())
 
 
-def evolve_product(product_id: str, apply_id: Optional[str] = None, expected_version: int | None = None) -> Dict[str, Any]:
+def evolve_product(
+    product_id: str,
+    apply_id: Optional[str] = None,
+    expected_version: int | None = None,
+    source_feedback_id: str = "",
+) -> Dict[str, Any]:
     base = ensure_product(product_id)
     if apply_id:
         return apply_proposal(base, apply_id, expected_version=expected_version)
 
-    proposal = _proposal_from_feedback(base)
+    proposal = _proposal_from_feedback(base, source_feedback_id=source_feedback_id)
     proposal = attach_rule_candidates_to_proposal(base, proposal)
     proposal["storage_uri"] = proposals().save(proposal)
     proposal_path = base / "structured" / "evolution_proposals" / f"{proposal['proposal_id']}.json"

@@ -6,6 +6,7 @@ import re
 from typing import Any, Dict, List
 
 from ..store import resolve_product_workspace
+from .creative_tasks import continue_creative_task, start_creative_task
 from .execution import workflow_run
 
 
@@ -148,6 +149,75 @@ def compact_workflow_run_result(run: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def compact_creative_task_result(task: Any) -> Dict[str, Any]:
+    """Expose the M10 task contract without leaking persistence internals."""
+
+    questions = [item.model_dump(mode="json") for item in task.questions]
+    next_message = ""
+    if questions:
+        next_message = "为了安全继续，请先回答：" + "；".join(
+            item["prompt"] for item in questions
+        )
+    authorization_request: Dict[str, Any] = {}
+    if task.authorization_request_id and not task.authorization_id:
+        # The full request is already persisted; return the bounded user-facing
+        # scope without creating another request.
+        from ..ports.runtime_repositories import artifacts
+
+        authorization_request = artifacts().get(task.product_id, task.authorization_request_id)
+    agent_action_request: Dict[str, Any] = {}
+    if task.status == "RESEARCHING":
+        authorization_sources = list(authorization_request.get("data_sources") or [])
+        if not authorization_sources and task.authorization_id:
+            from .authorization import load_task_authorization
+
+            authorization_sources = list(
+                load_task_authorization(task.product_id, task.authorization_id).data_sources
+            )
+        agent_action_request = {
+            "type": "authorized_external_research",
+            "tool": "web_search" if authorization_sources == ["web"] else "authorized_source_adapters",
+            "authorized_sources": authorization_sources,
+            "query": f"{task.product_id} {task.request.raw_message}",
+            "task_id": task.task_id,
+            "authorization_id": task.authorization_id,
+            "after_search": (
+                "Import sanitized results with product_external_source_collect in manual-import mode, "
+                "then call product_workflow_run with this task_id to continue."
+            ),
+            "safety": {
+                "not_product_fact": True,
+                "product_brain_writeback": False,
+            },
+        }
+    return {
+        "success": True,
+        "schema_version": task.schema_version,
+        "agent_turn_schema_version": AGENT_TURN_SCHEMA_VERSION,
+        "workflow_run_id": "",
+        "product_id": task.product_id,
+        "task_id": task.task_id,
+        "task_status": task.status,
+        "interpreted_goal": task.request.raw_message,
+        "deliverables": list(task.request.deliverables),
+        "current_stage": task.current_stage,
+        "completed_stages": list(task.completed_stages),
+        "questions": questions,
+        "blocked_reason": task.blocked_reason,
+        "pending_proposal_id": task.pending_proposal_id,
+        "pending_proposal_kind": task.pending_proposal_kind,
+        "authorization_request": authorization_request,
+        "authorization_id": task.authorization_id,
+        "agent_action_request": agent_action_request,
+        "selected_materials": list(task.selected_materials),
+        "selected_idea": dict(task.selected_idea),
+        "result_descriptors": list(task.result_descriptors),
+        "user_next_message": next_message,
+        "files": {"creative_task": task.artifact_path},
+        "response_guidance": "Answer the user in natural language. Ask only the returned high-value questions; never fill UNKNOWN product facts from assumptions.",
+    }
+
+
 def product_agent_turn(
     product_id: str = "",
     product_query: str = "",
@@ -171,6 +241,9 @@ def product_agent_turn(
     provider: str = "",
     analysis: str = "",
     max_steps: int = 5,
+    task_id: str = "",
+    autonomy_mode: str = "adaptive",
+    authorization_id: str = "",
 ) -> Dict[str, Any]:
     resolution: Dict[str, Any] = {}
     resolved_product_id = product_id or ""
@@ -194,7 +267,35 @@ def product_agent_turn(
 
     run_message = message or ""
     if resolution.get("created") and not action:
-        run_message = ""
+        run_message = message or ""
+
+    # M10 natural-language goals enter the durable Creative Task layer.  An
+    # explicit action remains on the legacy single-workflow path for backwards
+    # compatibility and for internal capability orchestration.
+    if task_id:
+        task = continue_creative_task(
+            resolved_product_id,
+            task_id,
+            run_message,
+            confirmed=bool(confirmed),
+            proposal_id=proposal_id,
+            authorization_id=authorization_id,
+        )
+        compact = compact_creative_task_result(task)
+        if resolution:
+            compact["workspace_resolution"] = resolution
+        return compact
+    if run_message.strip() and not action:
+        task = start_creative_task(
+            resolved_product_id,
+            run_message,
+            autonomy_mode=autonomy_mode or "adaptive",
+            provider=provider,
+        )
+        compact = compact_creative_task_result(task)
+        if resolution:
+            compact["workspace_resolution"] = resolution
+        return compact
 
     run = workflow_run(
         resolved_product_id,

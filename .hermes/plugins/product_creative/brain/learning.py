@@ -705,6 +705,14 @@ def apply_learning_updates(state: Dict[str, Any], proposal: Dict[str, Any]) -> T
         elif path == "learning.material_preferences":
             if value and value not in state["learning"]["material_preferences"]:
                 state["learning"]["material_preferences"].append(value)
+        elif path == "basic.sku":
+            state.setdefault("basic", {})["sku"] = value
+        elif path == "name":
+            state["name"] = value
+        elif path == "compliance.allowed_claims":
+            state.setdefault("compliance", {})["allowed_claims"] = list(value or [])
+        elif path == "compliance.forbidden_claims":
+            state.setdefault("compliance", {})["forbidden_claims"] = list(value or [])
         else:
             continue
         applied.append(update)

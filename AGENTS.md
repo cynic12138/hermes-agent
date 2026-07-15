@@ -5,9 +5,10 @@
 ## Goal and current boundary
 
 - 目标：在 Hermes 上维护长期 Product Brain，编排产品文案/图片/视频工作流，并把反馈经人工确认安全沉淀为下一轮生成上下文。
-- 已提交基线：M9.1 通用 Desktop Plugin SDK + plugin-owned UI（实现提交 `83b4e8f`）；已完成定向测试、Node 22 build、离线安装 E2E 与分发扫描，尚未 push/release。
-- 当前 MVP：对话启动生成；Desktop 审阅、确认与恢复；真实 provider 显式 opt-in。
-- 暂不做：M10 从 0 对话建脑、新 provider/抓取、完整工作台、云/多租户扩展，除非用户批准。
+- 已提交基线：M9.1 通用 Desktop Plugin SDK + plugin-owned UI（实现提交 `83b4e8f`），尚未 push/release。
+- 当前工作区：M10 产品认知驱动的自主创作闭环已实现但未提交；Live Provider/sidecar 和用户验收未完成，状态为 PARTIAL。
+- 当前 MVP：自然语言建/续 Creative Task，任务级 Readiness 与追问，授权研究/生成，Desktop 审阅/确认/恢复；真实 provider 双重 opt-in。
+- 暂不做：新 provider/抓取器、Theme Brain、GEO/自动发帖、矩阵/投放闭环、完整工作台、云/多租户扩展，除非用户批准。
 
 ## Key paths and stack
 
@@ -31,6 +32,8 @@ npm.cmd --prefix apps/desktop run build
 
 - Product Creative 留在插件；宿主只增加通用插件能力，不添加产品专属 core 分支。
 - Product Brain 写回、付费 provider、外部发布、核心素材变更必须确认。
+- 外部信息只能进入 evidence/inspiration/proposal；未确认不得成为 Canonical Product Brain。任务授权永不包含 Brain 写回。
+- real provider 还必须显式设置 `PRODUCT_CREATIVE_ENABLE_REAL_PROVIDER=1`；测试与普通开发环境保持关闭。
 - SQLite 是 durable runtime 真源；媒体/可审阅 artifact 位于 workspace 文件系统。
 - 不输出或提交 API key、token、Cookie、个人数据、workspace DB/artifact。
 - 不清理或覆盖当前脏工作区；始终区分 HEAD 与 worktree。
@@ -43,7 +46,7 @@ npm.cmd --prefix apps/desktop run build
 
 ## Fast handoff index
 
-依次读取：`AGENTS.md`、`docs/AI_HANDOFF.md`、`docs/PROJECT_STATE.md`、`docs/MVP_SCOPE.md`、`docs/ARCHITECTURE_CURRENT.md`。修改 Desktop Plugin SDK 或 Product Creative 页面/分发前，再读 `docs/M9_1_DESKTOP_PLUGIN_SDK_IMPLEMENTATION.md`；下一开发任务见 `docs/plans/2026-07-14-m10-zero-to-product-brain-plan.md`。
+依次读取：`AGENTS.md`、`docs/AI_HANDOFF.md`、`docs/PROJECT_STATE.md`、`docs/MVP_SCOPE.md`、`docs/ARCHITECTURE_CURRENT.md`。M10 开发/恢复必须再读 `docs/M10_PRODUCT_COGNITION_AUTONOMOUS_CREATION_IMPLEMENTATION.md` 和 `docs/plans/2026-07-14-m10-zero-to-product-brain-plan.md`；Desktop SDK/分发再读 `docs/M9_1_DESKTOP_PLUGIN_SDK_IMPLEMENTATION.md`。
 
 ---
 

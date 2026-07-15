@@ -6,7 +6,7 @@ from typing import Any, Callable, Dict
 
 from ..capabilities.registry import action_descriptors, workflow_fragments
 from ..contracts.durable import GoalPlan, GoalPlanStep, Observation
-from ..contracts.models import IntentDecision
+from ..contracts.models import CreativeTaskPlanStep, CreativeTaskRequest, IntentDecision
 
 
 StructuredPlanner = Callable[[Dict[str, Any]], Dict[str, Any]]
@@ -69,6 +69,64 @@ class GoalPlanner:
         )
         self.validate(plan, observation)
         return plan
+
+    def creative_task_actions(self, request: CreativeTaskRequest) -> list[CreativeTaskPlanStep]:
+        """Build a bounded cross-domain plan from the existing capability registry."""
+
+        candidates: list[tuple[str, str, str]] = []
+        if request.requires_fresh_inspiration:
+            candidates.extend(
+                [
+                    ("RESEARCHING", "collect_external_source_snapshot", "task_authorization"),
+                    ("RESEARCHING", "create_inspiration_candidates", ""),
+                    ("IDEATING", "create_inspiration_pack", ""),
+                ]
+            )
+        if any(item in request.deliverables for item in ("image", "video")):
+            candidates.append(("PREPARING_ASSETS", "prepare_task_material_pack", ""))
+        if "text" in request.deliverables:
+            candidates.append(("IDEATING", "run_channel_review", ""))
+        if "image" in request.deliverables:
+            candidates.extend(
+                [
+                    ("IDEATING", "resolve_image_intent", ""),
+                    ("IDEATING", "create_image_brief", ""),
+                    ("IDEATING", "review_image_brief", ""),
+                    ("GENERATING", "create_batch_generation_policy", "human_confirmation"),
+                    ("GENERATING", "build_image_provider_payload", ""),
+                    ("GENERATING", "check_image_live_readiness", "provider_readiness"),
+                    ("GENERATING", "submit_image_generation_job", "task_authorization"),
+                ]
+            )
+        if "video" in request.deliverables:
+            candidates.extend(
+                [
+                    ("IDEATING", "resolve_video_intent", ""),
+                    ("IDEATING", "create_video_brief", ""),
+                    ("IDEATING", "review_video_brief", ""),
+                    ("GENERATING", "build_video_provider_payload", ""),
+                    ("GENERATING", "check_video_reference_readiness", "provider_readiness"),
+                    ("GENERATING", "check_video_live_readiness", "provider_readiness"),
+                    ("GENERATING", "create_video_execution_policy", "human_confirmation"),
+                    ("GENERATING", "submit_video_generation_task", "task_authorization"),
+                    ("GENERATING", "check_video_task_status", "task_authorization"),
+                ]
+            )
+        if request.deliverables:
+            candidates.append(("DELIVERING", "create_task_overview_package", ""))
+        if any(item in request.deliverables for item in ("image", "video")):
+            candidates.append(("DELIVERING", "review_generated_result", ""))
+
+        allowed = action_descriptors()
+        unknown = [action for _, action, _ in candidates if action not in allowed]
+        if unknown:
+            raise ValueError(f"creative task plan contains unknown capabilities: {unknown}")
+        if len(candidates) > 24:
+            raise ValueError("creative task plan exceeds the 24 action safety bound")
+        return [
+            CreativeTaskPlanStep(stage=stage, action=action, guard=guard)
+            for stage, action, guard in candidates
+        ]
 
     @staticmethod
     def validate(plan: GoalPlan, observation: Observation) -> None:
