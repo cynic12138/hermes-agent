@@ -1,0 +1,40 @@
+# BMAD Project Configuration — recovered from repository evidence
+project:
+  name: "Hermes Product Creative"
+  type: "other"
+  level: 2
+  description: "Durable Hermes plugin for Product Brain-driven product content workflows, review, learning, and recovery."
+
+paths:
+  output_folder: "docs"
+  stories_folder: "docs/stories"
+  status_file: "bmad/workflow-status.yaml"
+  sprint_file: "bmad/sprint-status.yaml"
+
+language:
+  communication_language: "Chinese"
+  document_output_language: "Chinese"
+
+workflow:
+  phase_1_analysis:
+    product_brief: "required"
+    research: "recommended"
+    brainstorm: "optional"
+  phase_2_planning:
+    prd: "required"
+    tech_spec: "recommended"
+    ux_design: "recommended"
+  phase_3_solutioning:
+    architecture: "required"
+    gate_check: "recommended"
+  phase_4_implementation:
+    sprint_planning: "required"
+    stories: "required"
+
+metadata:
+  created: "2026-07-12T15:41:51+08:00"
+  bmad_version: "6.0.0"
+  last_updated: "2026-07-15T09:49:22+08:00"
+  recovery_status: "evidence_reconstructed"
+  level_confidence: "INFERRED"
+  baseline_head: "83b4e8f"

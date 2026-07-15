@@ -1,3 +1,52 @@
+# Project Recovery Entry (Product Creative)
+
+> 本节是本分支的项目级入口；下方原有 Hermes Agent guide 仍是宿主开发规范。新会话先读本节列出的五份文档，不要把旧 Roadmap 的 M4/M8 口径当作当前状态。
+
+## Goal and current boundary
+
+- 目标：在 Hermes 上维护长期 Product Brain，编排产品文案/图片/视频工作流，并把反馈经人工确认安全沉淀为下一轮生成上下文。
+- 已提交基线：M9.1 通用 Desktop Plugin SDK + plugin-owned UI（实现提交 `83b4e8f`）；已完成定向测试、Node 22 build、离线安装 E2E 与分发扫描，尚未 push/release。
+- 当前 MVP：对话启动生成；Desktop 审阅、确认与恢复；真实 provider 显式 opt-in。
+- 暂不做：M10 从 0 对话建脑、新 provider/抓取、完整工作台、云/多租户扩展，除非用户批准。
+
+## Key paths and stack
+
+- Product Creative：`.hermes/plugins/product_creative/`
+- Desktop：`apps/desktop/`；宿主 API：`hermes_cli/web_server.py`
+- Stack：Python 3.11–3.13、FastAPI/Pydantic、SQLite + workspace files、Electron/React/TypeScript。
+
+## Commands
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .hermes/plugins/product_creative/scripts/verify_m9_review_recovery.ps1
+powershell -ExecutionPolicy Bypass -File .hermes/plugins/product_creative/scripts/verify_public_surface_golden.ps1
+node --test apps/desktop/electron/desktop-plugin-bundle.test.cjs
+npm.cmd --prefix apps/desktop run typecheck
+npm.cmd --prefix apps/desktop run build
+```
+
+上游 Python 测试按下方规范使用 `scripts/run_tests.sh`。会改 config/workspace DB、生成 artifact、调用外部 API 或产生费用的命令必须先隔离并确认。
+
+## Non-negotiable boundaries
+
+- Product Creative 留在插件；宿主只增加通用插件能力，不添加产品专属 core 分支。
+- Product Brain 写回、付费 provider、外部发布、核心素材变更必须确认。
+- SQLite 是 durable runtime 真源；媒体/可审阅 artifact 位于 workspace 文件系统。
+- 不输出或提交 API key、token、Cookie、个人数据、workspace DB/artifact。
+- 不清理或覆盖当前脏工作区；始终区分 HEAD 与 worktree。
+- 新增模块/接口/表/组件前运行项目级 `scope-gate` 和 `redundancy-review`；范围外想法进 `docs/PARKING_LOT.md`。
+- PowerShell 使用 `-LiteralPath`、`npm.cmd`，含空格路径正确引用；禁止 `rm -rf`、`curl | bash` 和 Bash heredoc。
+
+## Done means
+
+任务必须有范围判定、复用检查、相关测试/构建、无外部副作用证明、状态文档更新；跨 Desktop/plugin/backend 还需隔离 workspace E2E。未经用户确认不提交、不推送。
+
+## Fast handoff index
+
+依次读取：`AGENTS.md`、`docs/AI_HANDOFF.md`、`docs/PROJECT_STATE.md`、`docs/MVP_SCOPE.md`、`docs/ARCHITECTURE_CURRENT.md`。修改 Desktop Plugin SDK 或 Product Creative 页面/分发前，再读 `docs/M9_1_DESKTOP_PLUGIN_SDK_IMPLEMENTATION.md`；下一开发任务见 `docs/plans/2026-07-14-m10-zero-to-product-brain-plan.md`。
+
+---
+
 # Hermes Agent - Development Guide
 
 Instructions for AI coding assistants and developers working on the hermes-agent codebase.

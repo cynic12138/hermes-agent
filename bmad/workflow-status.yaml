@@ -1,0 +1,97 @@
+# BMAD Workflow Status — evidence recovery, not historical approval reconstruction
+project:
+  name: "Hermes Product Creative"
+  level: 2
+  initialized: "2026-07-12T15:41:51+08:00"
+  last_updated: "2026-07-15T09:49:22+08:00"
+
+current_phase: 1
+current_workflow: "product_brief"
+
+phases:
+  phase_1_analysis:
+    name: "Analysis"
+    status: "in_progress"
+    workflows:
+      product_brief:
+        status: "required"
+        completed: false
+        output_file: null
+        completed_at: null
+        note: "User has clarified target users and final direction, but no consolidated stakeholder-approved product brief has been written."
+      research:
+        status: "recommended"
+        completed: true
+        output_file: "docs/bmad/research-report.md"
+        completed_at: "2026-07-12T15:41:51+08:00"
+      brainstorm:
+        status: "optional"
+        completed: false
+        output_file: null
+        completed_at: null
+  phase_2_planning:
+    name: "Planning"
+    status: "in_progress"
+    workflows:
+      prd:
+        status: "required"
+        completed: false
+        output_file: null
+        completed_at: null
+      tech_spec:
+        status: "recommended"
+        completed: true
+        output_file: "docs/bmad/tech-spec.md"
+        completed_at: "2026-07-12T15:41:51+08:00"
+        note: "As-is recovery specification, not stakeholder-approved requirements."
+      ux_design:
+        status: "recommended"
+        completed: false
+        output_file: null
+        completed_at: null
+  phase_3_solutioning:
+    name: "Solutioning"
+    status: "in_progress"
+    workflows:
+      architecture:
+        status: "required"
+        completed: true
+        output_file: "docs/bmad/architecture.md"
+        completed_at: "2026-07-12T15:41:51+08:00"
+      gate_check:
+        status: "recommended"
+        completed: true
+        passed: false
+        output_file: "docs/bmad/gate-check.md"
+        completed_at: "2026-07-12T15:41:51+08:00"
+  phase_4_implementation:
+    name: "Implementation"
+    status: "in_progress"
+    workflows:
+      sprint_planning:
+        status: "required"
+        completed: false
+        output_file: null
+        completed_at: null
+      stories:
+        total: 0
+        completed: 0
+        in_progress: 0
+        story_list: []
+
+metrics:
+  total_workflows: 7
+  completed_workflows: 4
+  progress_percentage: 57
+  estimated_stories: 0
+  completed_stories: 0
+
+recovery:
+  implementation_baseline: "M9.1 implementation commit 83b4e8f; unpushed/unpublished"
+  historical_bmad_state: "UNKNOWN — no prior BMAD files existed"
+  next_intent: "Review docs/plans/2026-07-14-m10-zero-to-product-brain-plan.md; product_brief remains incomplete"
+  m9_1_release_gate:
+    status: "passed"
+    completed_at: "2026-07-15T09:49:22+08:00"
+    evidence: "Node 22 targeted UI/typecheck/build; Python API/distribution; M9 recovery/public surface; sensitive scan; offline user-plugin E2E"
+    note: "Manual evidence gate for M9.1 implementation commit 83b4e8f, not a rerun of the historical BMAD solutioning gate."
