@@ -123,11 +123,11 @@ export type CommandDispatchResponse =
   | PrefillCommandDispatchResponse
 
 export type SidebarNavId =
+  | `desktop-plugin:${string}`
   | 'artifacts'
   | 'command-center'
   | 'messaging'
   | 'new-session'
-  | 'product-creative'
   | 'settings'
   | 'skills'
 

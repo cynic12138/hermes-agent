@@ -5,7 +5,6 @@ export const COMMAND_CENTER_ROUTE = '/command-center'
 export const SKILLS_ROUTE = '/skills'
 export const MESSAGING_ROUTE = '/messaging'
 export const ARTIFACTS_ROUTE = '/artifacts'
-export const PRODUCT_CREATIVE_ROUTE = '/product-creative'
 export const CRON_ROUTE = '/cron'
 export const PROFILES_ROUTE = '/profiles'
 export const AGENTS_ROUTE = '/agents'
@@ -19,7 +18,7 @@ export type AppView =
   | 'cron'
   | 'messaging'
   | 'profiles'
-  | 'product-creative'
+  | 'desktop-plugin'
   | 'settings'
   | 'skills'
   | 'starmap'
@@ -32,7 +31,6 @@ export type AppRouteId =
   | 'messaging'
   | 'new'
   | 'profiles'
-  | 'product-creative'
   | 'settings'
   | 'skills'
   | 'starmap'
@@ -50,7 +48,6 @@ export const APP_ROUTES = [
   { id: 'skills', path: SKILLS_ROUTE, view: 'skills' },
   { id: 'messaging', path: MESSAGING_ROUTE, view: 'messaging' },
   { id: 'artifacts', path: ARTIFACTS_ROUTE, view: 'artifacts' },
-  { id: 'product-creative', path: PRODUCT_CREATIVE_ROUTE, view: 'product-creative' },
   { id: 'cron', path: CRON_ROUTE, view: 'cron' },
   { id: 'profiles', path: PROFILES_ROUTE, view: 'profiles' },
   { id: 'agents', path: AGENTS_ROUTE, view: 'agents' },
@@ -58,7 +55,31 @@ export const APP_ROUTES = [
 ] as const satisfies readonly AppRoute[]
 
 const APP_VIEW_BY_PATH = new Map<string, AppView>(APP_ROUTES.map(route => [route.path, route.view]))
-const RESERVED_PATHS: ReadonlySet<string> = new Set(APP_ROUTES.map(route => route.path))
+export const RESERVED_APP_PATHS: ReadonlySet<string> = new Set(APP_ROUTES.map(route => route.path))
+const desktopPluginPaths = new Set<string>()
+
+export function isReservedAppPath(pathname: string): boolean {
+  return RESERVED_APP_PATHS.has(pathname) || pathname.startsWith('/sessions/')
+}
+
+export function setDesktopPluginPaths(paths: Iterable<string>) {
+  desktopPluginPaths.clear()
+  for (const path of paths) {
+    desktopPluginPaths.add(path)
+  }
+}
+
+export function isDesktopPluginPath(pathname: string): boolean {
+  return desktopPluginPaths.has(pathname)
+}
+
+export function shouldDeferUnknownRouteForDesktopPlugins(
+  pathname: string,
+  loading: boolean,
+  pluginDiscovered: boolean
+): boolean {
+  return loading && !pluginDiscovered && !isReservedAppPath(pathname)
+}
 
 // Views that render as a full-screen modal card (OverlayView) over the shell.
 // While one is open the app's titlebar control clusters must hide so they don't
@@ -81,7 +102,7 @@ export function isNewChatRoute(pathname: string): boolean {
 }
 
 export function routeSessionId(pathname: string): string | null {
-  if (!pathname.startsWith(SESSION_ROUTE_PREFIX) || RESERVED_PATHS.has(pathname)) {
+  if (!pathname.startsWith(SESSION_ROUTE_PREFIX) || isReservedAppPath(pathname) || isDesktopPluginPath(pathname)) {
     return null
   }
 
@@ -99,5 +120,5 @@ export function appViewForPath(pathname: string): AppView {
     return 'chat'
   }
 
-  return APP_VIEW_BY_PATH.get(pathname) ?? 'chat'
+  return APP_VIEW_BY_PATH.get(pathname) ?? (isDesktopPluginPath(pathname) ? 'desktop-plugin' : 'chat')
 }

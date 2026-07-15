@@ -63,6 +63,10 @@ declare global {
         set: (name: string | null) => Promise<DesktopActiveProfile>
       }
       api: <T>(request: HermesApiRequest) => Promise<T>
+      desktopPlugins: {
+        list: () => Promise<DesktopPluginListResponse>
+        load: (name: string) => Promise<DesktopPluginBundle>
+      }
       notify: (payload: HermesNotification) => Promise<boolean>
       requestMicrophoneAccess: () => Promise<boolean>
       readFileDataUrl: (filePath: string) => Promise<string>
@@ -523,6 +527,32 @@ export interface HermesApiRequest {
   // (window) backend. Read-only cross-profile data is served by the primary, so
   // this is only needed for profile-scoped live/settings calls.
   profile?: string | null
+}
+
+export interface DesktopPluginManifest {
+  api_version: 1
+  entry: string
+  icon: string
+  label: string
+  name: string
+  path: string
+  position: string
+  source: 'bundled' | 'user'
+  version: string
+}
+
+export interface DesktopPluginListResponse {
+  api_version: number
+  plugins: DesktopPluginManifest[]
+}
+
+export interface DesktopPluginBundle {
+  api_version: number
+  entry: string
+  name: string
+  sha256: string
+  source: string
+  version: string
 }
 
 export interface HermesNotification {

@@ -2,7 +2,7 @@
 
 `product_creative` is a durable, AI-driven Hermes plugin for long-running product content work. It keeps Product Brain versions, workflows, events, receipts, learning rules, and writeback proposals in SQLite while media and large artifacts remain in the product workspace.
 
-M9 adds a native Hermes Desktop review and recovery console. Generation is still started through natural-language Hermes conversations; M10 will add guided generation launch controls.
+M9.1 adds a user-plugin-owned Hermes Desktop review and recovery console. Generation is still started through natural-language Hermes conversations; M10 will add guided generation launch controls.
 
 ## Install
 
@@ -29,7 +29,7 @@ The M9 console uses the active Hermes Desktop workspace. Runtime data belongs to
 
 The user installation under `~/.hermes/plugins/product_creative` contains code only. It does not own product data. Every API request carries the current workspace root, which is canonicalized and scoped with `ContextVar`; the plugin never changes the process-wide working directory.
 
-## M9 review console
+## M9.1 review console
 
 Open **Product Creative** from the Desktop sidebar or command palette.
 
@@ -79,7 +79,7 @@ The distribution repository is generated from `.hermes/plugins/product_creative`
 
 ## Compatibility
 
-M9 preserves all 78 M8 Hermes tools and CLI commands and adds six controlled recovery commands, for 84 total. The plugin requires a Hermes version that supports user-plugin dashboard APIs and the native `/product-creative` Desktop route.
+M9.1 preserves all 78 M8 Hermes tools and CLI commands and adds six controlled recovery commands, for 84 total. Version `9.1.0-alpha.1` requires a Hermes Desktop build with Desktop Plugin SDK v1. The `/product-creative` page, translations, and UI bundle are delivered by this plugin; Hermes Desktop contains no Product Creative-specific route or component.
 
 ## Security and privacy
 

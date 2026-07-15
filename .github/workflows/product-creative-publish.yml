@@ -6,11 +6,15 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Release tag, for example product-creative-v9.0.0
+        description: Release tag, for example product-creative-v9.1.0-alpha.1
         required: true
 
 permissions:
   contents: read
+
+concurrency:
+  group: product-creative-publish
+  cancel-in-progress: false
 
 jobs:
   publish:
@@ -20,8 +24,36 @@ jobs:
         with: { fetch-depth: 0 }
       - uses: actions/setup-python@v5
         with: { python-version: '3.12' }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
       - name: Install runtime test dependencies
-        run: python -m pip install pydantic fastapi httpx
+        run: python -m pip install pytest pydantic fastapi uvicorn httpx python-multipart
+      - name: Install Desktop dependencies
+        run: npm ci
+      - name: Resolve version
+        id: version
+        shell: pwsh
+        run: |
+          $value = if ('${{ github.event_name }}' -eq 'workflow_dispatch') { '${{ inputs.version }}' } else { '${{ github.ref_name }}' }
+          if ($value -notmatch '^product-creative-v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$') { throw "Invalid release tag: $value" }
+          $semver = $value.Substring('product-creative-v'.Length)
+          $core = ($semver -split '-', 2)[0].Split('.') | ForEach-Object { [int]$_ }
+          if ($core[0] -lt 9 -or ($core[0] -eq 9 -and $core[1] -lt 1)) { throw "Release version must be newer than the 9.0.0 distribution baseline" }
+          "value=$value" >> $env:GITHUB_OUTPUT
+          "plugin_version=$semver" >> $env:GITHUB_OUTPUT
+      - name: Verify Desktop Plugin SDK
+        shell: pwsh
+        run: |
+          node --test apps/desktop/electron/desktop-plugin-bundle.test.cjs
+          npm --prefix apps/desktop run test:ui -- src/app/routes.test.ts src/app/desktop-plugins/registry.test.ts src/app/desktop-plugins/page.test.tsx src/app/desktop-plugins/product-creative-bundle.test.ts
+          npm --prefix apps/desktop run typecheck
+          npm --prefix apps/desktop run build
+      - name: Verify Desktop plugin backend API
+        run: python -m pytest tests/hermes_cli/test_desktop_plugin_pages.py tests/hermes_cli/test_product_creative_distribution.py -q
+      - name: Build Desktop plugin bundle
+        run: python .hermes/plugins/product_creative/scripts/build_desktop_bundle.py
       - name: Verify plugin contracts
         shell: pwsh
         run: |
@@ -29,15 +61,20 @@ jobs:
           ./.hermes/plugins/product_creative/scripts/verify_public_surface_golden.ps1
       - name: Export distribution
         shell: pwsh
-        run: ./.hermes/plugins/product_creative/scripts/export_distribution.ps1 -OutputDirectory "$env:RUNNER_TEMP/product_creative"
-      - name: Resolve version
-        id: version
+        run: ./.hermes/plugins/product_creative/scripts/export_distribution.ps1 -OutputDirectory "$env:RUNNER_TEMP/product_creative" -ExpectedVersion "${{ steps.version.outputs.plugin_version }}"
+      - name: Verify offline user-plugin installation
+        run: python .hermes/plugins/product_creative/scripts/verify_distribution_install.py "${{ runner.temp }}/product_creative"
+      - name: Verify exported Desktop bundle registry
         shell: pwsh
         run: |
-          $value = if ('${{ github.event_name }}' -eq 'workflow_dispatch') { '${{ inputs.version }}' } else { '${{ github.ref_name }}' }
-          if ($value -notmatch '^product-creative-v\d+\.\d+\.\d+$') { throw "Invalid release tag: $value" }
-          "value=$value" >> $env:GITHUB_OUTPUT
-      - name: Publish generated repository
+          $env:PRODUCT_CREATIVE_DISTRIBUTION = "$env:RUNNER_TEMP/product_creative"
+          npm --prefix apps/desktop run test:ui -- src/app/desktop-plugins/distribution-bundle.test.ts
+      - name: Package release
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "$env:RUNNER_TEMP/product_creative/*" -DestinationPath "$env:RUNNER_TEMP/${{ steps.version.outputs.value }}.zip"
+          (Get-FileHash "$env:RUNNER_TEMP/${{ steps.version.outputs.value }}.zip" -Algorithm SHA256).Hash.ToLower() | Set-Content "$env:RUNNER_TEMP/${{ steps.version.outputs.value }}.sha256"
+      - name: Publish generated repository atomically
         shell: pwsh
         env:
           PUBLISH_TOKEN: ${{ secrets.PRODUCT_CREATIVE_PUBLISH_TOKEN }}
@@ -51,14 +88,8 @@ jobs:
           git -C $dist config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git -C $dist add --all
           git -C $dist commit -m "release: ${{ steps.version.outputs.value }} from ${{ github.sha }}"
-          git -C $dist push origin HEAD:main
           git -C $dist tag -a "${{ steps.version.outputs.value }}" -m "${{ steps.version.outputs.value }}"
-          git -C $dist push origin "${{ steps.version.outputs.value }}"
-      - name: Package release
-        shell: pwsh
-        run: |
-          Compress-Archive -Path "$env:RUNNER_TEMP/product_creative/*" -DestinationPath "$env:RUNNER_TEMP/${{ steps.version.outputs.value }}.zip"
-          (Get-FileHash "$env:RUNNER_TEMP/${{ steps.version.outputs.value }}.zip" -Algorithm SHA256).Hash.ToLower() | Set-Content "$env:RUNNER_TEMP/${{ steps.version.outputs.value }}.sha256"
+          git -C $dist push --atomic origin HEAD:main "refs/tags/${{ steps.version.outputs.value }}"
       - name: Create distribution release
         shell: pwsh
         env:

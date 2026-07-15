@@ -17,6 +17,7 @@ import binascii
 from dataclasses import dataclass
 from datetime import datetime, timezone
 import hmac
+import hashlib
 import importlib.util
 import json
 import logging
@@ -13502,6 +13503,62 @@ def _discover_dashboard_plugins() -> list:
                         "not be mounted",
                         name, raw_api,
                     )
+                desktop_info = None
+                raw_desktop = data.get("desktop")
+                if isinstance(raw_desktop, dict):
+                    desktop_path = raw_desktop.get("path")
+                    desktop_entry = raw_desktop.get("entry")
+                    desktop_position = raw_desktop.get("position", "end")
+                    desktop_label = raw_desktop.get("label", data.get("label", name))
+                    desktop_icon = raw_desktop.get("icon", "extensions")
+                    try:
+                        resolved_entry = (dashboard_dir / str(desktop_entry)).resolve()
+                        resolved_entry.relative_to(dashboard_dir.resolve())
+                        safe_desktop_entry = (
+                            str(desktop_entry)
+                            if resolved_entry.suffix.lower() in {".js", ".mjs"}
+                            else None
+                        )
+                    except (OSError, RuntimeError, TypeError, ValueError):
+                        safe_desktop_entry = None
+                    valid_path = (
+                        isinstance(desktop_path, str)
+                        and re.fullmatch(r"/[A-Za-z0-9][A-Za-z0-9/_-]*", desktop_path) is not None
+                        and "//" not in desktop_path
+                        and ".." not in desktop_path
+                    )
+                    valid_position = (
+                        isinstance(desktop_position, str)
+                        and re.fullmatch(r"(?:end|(?:before|after):[A-Za-z0-9][A-Za-z0-9_-]*)", desktop_position)
+                        is not None
+                    )
+                    valid_label = (
+                        isinstance(desktop_label, str)
+                        and bool(desktop_label.strip())
+                        and len(desktop_label) <= 80
+                    )
+                    valid_icon = (
+                        isinstance(desktop_icon, str)
+                        and re.fullmatch(r"[A-Za-z][A-Za-z0-9-]{0,63}", desktop_icon) is not None
+                    )
+                    if (
+                        raw_desktop.get("api_version") == 1
+                        and valid_path
+                        and safe_desktop_entry
+                        and valid_position
+                        and valid_label
+                        and valid_icon
+                    ):
+                        desktop_info = {
+                            "api_version": 1,
+                            "path": desktop_path,
+                            "entry": safe_desktop_entry,
+                            "position": desktop_position,
+                            "label": desktop_label,
+                            "icon": desktop_icon,
+                        }
+                    else:
+                        _log.warning("Plugin %s: ignoring invalid desktop manifest", name)
                 plugins.append({
                     "name": name,
                     "label": data.get("label", name),
@@ -13513,6 +13570,7 @@ def _discover_dashboard_plugins() -> list:
                     "entry": data.get("entry", "dist/index.js"),
                     "css": data.get("css"),
                     "has_api": bool(safe_api),
+                    "desktop": desktop_info,
                     "source": source,
                     "_dir": str(dashboard_dir),
                     "_api_file": safe_api,
@@ -13537,16 +13595,9 @@ def _get_dashboard_plugins(force_rescan: bool = False) -> list:
     return _dashboard_plugins_cache
 
 
-@app.get("/api/dashboard/plugins")
-async def get_dashboard_plugins():
-    """Return discovered dashboard plugins (excludes user-hidden and non-enabled ones)."""
-    plugins = _get_dashboard_plugins()
-    # Read user's hidden plugins list from config.
+def _is_dashboard_plugin_active(plugin: dict) -> bool:
     config = load_config()
     hidden: list = cfg_get(config, "dashboard", "hidden_plugins", default=[]) or []
-    # Gate: only serve user plugins that are in plugins.enabled and not
-    # in plugins.disabled.  This prevents the frontend from loading JS/CSS
-    # from plugins the user has not explicitly activated.  (#46435)
     try:
         from hermes_cli.plugins_cmd import _get_enabled_set, _get_disabled_set
         enabled_set = _get_enabled_set()
@@ -13555,26 +13606,81 @@ async def get_dashboard_plugins():
         enabled_set = set()
         disabled_set = set()
 
-    def _is_active(p: dict) -> bool:
-        name = p.get("name", "")
-        if name in hidden:
-            return False
-        if p.get("source") == "user":
-            if name in disabled_set:
-                return False
-            if name not in enabled_set:
-                return False
-        elif p.get("source") == "bundled":
-            if name in disabled_set:
-                return False
-        return True
+    name = plugin.get("name", "")
+    if name in hidden or name in disabled_set:
+        return False
+    if plugin.get("source") == "user" and name not in enabled_set:
+        return False
+    return True
 
+
+@app.get("/api/dashboard/plugins")
+async def get_dashboard_plugins():
+    """Return discovered dashboard plugins (excludes user-hidden and non-enabled ones)."""
+    plugins = _get_dashboard_plugins()
+    # Read user's hidden plugins list from config.
     # Strip internal fields before sending to frontend.
     return [
         {k: v for k, v in p.items() if not k.startswith("_")}
         for p in plugins
-        if _is_active(p)
+        if _is_dashboard_plugin_active(p)
     ]
+
+
+@app.get("/api/desktop/plugins")
+async def get_desktop_plugins(request: Request):
+    """List enabled bundled/user Desktop plugin pages."""
+    _require_token(request)
+    plugins = []
+    for plugin in _get_dashboard_plugins():
+        if plugin.get("source") == "project" or not plugin.get("desktop"):
+            continue
+        if not _is_dashboard_plugin_active(plugin):
+            continue
+        plugins.append({
+            "name": plugin["name"],
+            "version": plugin["version"],
+            "source": plugin["source"],
+            **plugin["desktop"],
+        })
+    return {"api_version": 1, "plugins": plugins}
+
+
+@app.get("/api/desktop/plugins/{name}/bundle")
+async def get_desktop_plugin_bundle(request: Request, name: str):
+    """Return an authenticated, size-bounded Desktop plugin bundle."""
+    _require_token(request)
+    name = _validate_plugin_name(name)
+    plugin = next((item for item in _get_dashboard_plugins() if item.get("name") == name), None)
+    if (
+        not plugin
+        or plugin.get("source") == "project"
+        or not plugin.get("desktop")
+        or not _is_dashboard_plugin_active(plugin)
+    ):
+        raise HTTPException(status_code=404, detail="Desktop plugin not found")
+
+    base = Path(plugin["_dir"]).resolve()
+    target = (base / plugin["desktop"]["entry"]).resolve()
+    try:
+        target.relative_to(base)
+    except ValueError:
+        raise HTTPException(status_code=403, detail="Path traversal blocked")
+    if not target.is_file():
+        raise HTTPException(status_code=404, detail="Desktop plugin bundle not found")
+    if target.stat().st_size > 2 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="Desktop plugin bundle exceeds 2 MiB")
+
+    source = target.read_text(encoding="utf-8")
+    digest = hashlib.sha256(source.encode("utf-8")).hexdigest()
+    return {
+        "name": name,
+        "version": plugin["version"],
+        "api_version": 1,
+        "entry": plugin["desktop"]["entry"],
+        "sha256": digest,
+        "source": source,
+    }
 
 
 @app.get("/api/dashboard/plugins/rescan")

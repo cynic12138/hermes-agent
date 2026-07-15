@@ -119,6 +119,7 @@ docs/superpowers/*
 !.hermes/plugins/product_creative/**
 .hermes/plugins/product_creative/**/__pycache__/
 .hermes/plugins/product_creative/**/*.pyc
+.hermes/plugins/product_creative/dashboard/dist/
 
 # Desktop/bootstrap install marker written into the managed checkout root by the
 # bootstrap installer. It is Hermes-managed runtime state, never a code change —

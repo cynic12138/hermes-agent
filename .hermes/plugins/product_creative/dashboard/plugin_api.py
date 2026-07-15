@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import base64
+import mimetypes
 import sys
 import uuid
 from pathlib import Path
@@ -65,7 +67,7 @@ def _dispatch(command: str, product_id: str, payload: Dict[str, Any]):
 
 @router.get("/health")
 def health(_root: Path = Depends(_workspace)):
-    return {"ok": True, "workspace": str(_root), "version": "9.0.0"}
+    return {"ok": True, "workspace": str(_root), "version": "9.1.0-alpha.1"}
 
 
 @router.get("/products")
@@ -110,6 +112,25 @@ def learning(product_id: str, _root: Path = Depends(_workspace)):
 def media(record_id: str, _root: Path = Depends(_workspace)):
     descriptor = _read(lambda: queries.media(record_id))
     return FileResponse(descriptor["path"], headers={"Cache-Control": "no-store"})
+
+
+@router.get("/media/{record_id}/descriptor")
+def media_descriptor(record_id: str, _root: Path = Depends(_workspace)):
+    descriptor = _read(lambda: queries.media(record_id))
+    return {"record_id": record_id, "path": descriptor["path"]}
+
+
+@router.get("/media/{record_id}/thumbnail")
+def media_thumbnail(record_id: str, _root: Path = Depends(_workspace)):
+    descriptor = _read(lambda: queries.media(record_id))
+    path = Path(descriptor["path"])
+    media_type = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
+    if not media_type.startswith("image/"):
+        raise HTTPException(status_code=415, detail="thumbnail is only available for images")
+    if path.stat().st_size > 8 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="image exceeds thumbnail limit")
+    encoded = base64.b64encode(path.read_bytes()).decode("ascii")
+    return {"record_id": record_id, "data_url": f"data:{media_type};base64,{encoded}"}
 
 
 @router.post("/proposals/{proposal_id}/decision")

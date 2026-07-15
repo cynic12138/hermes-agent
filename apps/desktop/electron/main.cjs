@@ -43,6 +43,7 @@ const { dashboardFallbackArgs, sourceDeclaresServe } = require('./backend-comman
 const { serializeJsonBody, setJsonRequestHeaders } = require('./oauth-net-request.cjs')
 const { fetchMarketplaceThemes, searchMarketplaceThemes } = require('./vscode-marketplace.cjs')
 const { buildDesktopBackendEnv, normalizeHermesHomeRoot } = require('./backend-env.cjs')
+const { validateDesktopPluginBundle } = require('./desktop-plugin-bundle.cjs')
 const { readWindowsUserEnvVar } = require('./windows-user-env.cjs')
 const { readWslWindowsClipboardImage } = require('./wsl-clipboard-image.cjs')
 const { nativeOverlayWidth: computeNativeOverlayWidth } = require('./titlebar-overlay-width.cjs')
@@ -6496,6 +6497,18 @@ ipcMain.handle('hermes:api', async (_event, request) => {
     headers,
     timeoutMs
   })
+})
+
+ipcMain.handle('hermes:desktop-plugins:list', async () => {
+  return fetchJsonForProfile(null, '/api/desktop/plugins')
+})
+
+ipcMain.handle('hermes:desktop-plugins:load', async (_event, name) => {
+  if (typeof name !== 'string' || !/^[A-Za-z0-9_-]+$/.test(name)) {
+    throw new Error('Invalid Desktop plugin name')
+  }
+  const bundle = await fetchJsonForProfile(null, `/api/desktop/plugins/${encodeURIComponent(name)}/bundle`)
+  return validateDesktopPluginBundle(name, bundle)
 })
 
 ipcMain.handle('hermes:notify', (_event, payload) => {

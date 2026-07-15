@@ -59,6 +59,7 @@ import { luminance } from '@/themes/color'
 import { type ThemeMode, useTheme } from '@/themes/context'
 import { isUserTheme, resolveTheme } from '@/themes/user-themes'
 
+import { useDesktopPlugins } from '../desktop-plugins/registry'
 import {
   AGENTS_ROUTE,
   ARTIFACTS_ROUTE,
@@ -66,7 +67,6 @@ import {
   CRON_ROUTE,
   MESSAGING_ROUTE,
   NEW_CHAT_ROUTE,
-  PRODUCT_CREATIVE_ROUTE,
   PROFILES_ROUTE,
   sessionRoute,
   SETTINGS_ROUTE,
@@ -227,6 +227,7 @@ export function CommandPalette() {
   const bindings = useStore($bindings)
   const worktrees = useStore($repoWorktrees)
   const navigate = useNavigate()
+  const desktopPlugins = useDesktopPlugins()
   const { availableThemes, resolvedMode, setMode, setTheme, themeName } = useTheme()
   const [search, setSearch] = useState('')
   const [page, setPage] = useState<string | null>(null)
@@ -377,13 +378,15 @@ export function CommandPalette() {
             label: cc.nav.artifacts.title,
             run: go(ARTIFACTS_ROUTE)
           },
-          {
+          ...desktopPlugins.manifests
+            .filter(plugin => desktopPlugins.statuses[plugin.name] === 'ready')
+            .map(plugin => ({
             icon: Package,
-            id: 'nav-product-creative',
-            keywords: ['product', 'creative', 'review', 'recovery'],
-            label: 'Product Creative',
-            run: go(PRODUCT_CREATIVE_ROUTE)
-          },
+            id: `nav-desktop-plugin-${plugin.name}`,
+            keywords: ['plugin', plugin.name, plugin.label],
+            label: plugin.label,
+            run: go(plugin.path)
+            })),
           {
             action: 'nav.cron',
             icon: Clock,
@@ -493,7 +496,7 @@ export function CommandPalette() {
         ]
       }
     ]
-  }, [go, settingsSectionLabel, t, worktrees])
+  }, [desktopPlugins.manifests, desktopPlugins.statuses, go, settingsSectionLabel, t, worktrees])
 
   // The long, granular lists (settings fields, API keys, MCP servers, archived
   // chats) only surface once the user types — otherwise they'd bury the

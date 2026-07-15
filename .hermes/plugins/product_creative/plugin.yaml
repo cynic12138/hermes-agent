@@ -1,5 +1,5 @@
 name: product_creative
-version: 9.0.0
+version: 9.1.0-alpha.1
 description: "Durable AI-driven Product Creative runtime with review, learning, and controlled recovery."
 author: cynic12138
 kind: standalone
@@ -7,6 +7,13 @@ platforms:
   - windows
   - linux
   - macos
+desktop:
+  api_version: 1
+  path: /product-creative
+  entry: dashboard/dist/desktop.js
+  position: after:artifacts
+  label: Product Creative
+  icon: review
 provides_tools:
   - product_create
   - product_ingest

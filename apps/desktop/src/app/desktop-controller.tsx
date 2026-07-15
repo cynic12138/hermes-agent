@@ -86,6 +86,8 @@ import {
 } from './chat/right-rail'
 import { ChatSidebar } from './chat/sidebar'
 import { CommandPalette } from './command-palette'
+import { DesktopPluginPage } from './desktop-plugins/page'
+import { desktopPluginForPath, useDesktopPlugins } from './desktop-plugins/registry'
 import { useGatewayBoot } from './gateway/hooks/use-gateway-boot'
 import { useGatewayRequest } from './gateway/hooks/use-gateway-request'
 import { useKeybinds } from './hooks/use-keybinds'
@@ -101,7 +103,14 @@ import { $terminalTakeover } from './right-sidebar/store'
 import { TerminalPaneChrome } from './right-sidebar/terminal/chrome'
 import { PersistentTerminal } from './right-sidebar/terminal/persistent'
 import { closeActiveTerminal } from './right-sidebar/terminal/terminals'
-import { CRON_ROUTE, NEW_CHAT_ROUTE, routeSessionId, sessionRoute, SETTINGS_ROUTE } from './routes'
+import {
+  CRON_ROUTE,
+  NEW_CHAT_ROUTE,
+  routeSessionId,
+  sessionRoute,
+  SETTINGS_ROUTE,
+  shouldDeferUnknownRouteForDesktopPlugins
+} from './routes'
 import { SessionPickerOverlay } from './session-picker-overlay'
 import { SessionSwitcher } from './session-switcher'
 import { useContextSuggestions } from './session/hooks/use-context-suggestions'
@@ -134,7 +143,6 @@ const MessagingView = lazy(async () => ({ default: (await import('./messaging'))
 const ProfilesView = lazy(async () => ({ default: (await import('./profiles')).ProfilesView }))
 const SettingsView = lazy(async () => ({ default: (await import('./settings')).SettingsView }))
 const SkillsView = lazy(async () => ({ default: (await import('./skills')).SkillsView }))
-const ProductCreativeView = lazy(async () => ({ default: (await import('./product-creative')).ProductCreativeView }))
 
 // Latest cron-job sessions surfaced in the collapsed "Cron jobs" section. The
 // Cron sessions are written by a background scheduler tick (the desktop
@@ -147,6 +155,13 @@ export function DesktopController() {
   const queryClient = useQueryClient()
   const location = useLocation()
   const navigate = useNavigate()
+  const desktopPlugins = useDesktopPlugins()
+  const desktopPlugin = desktopPluginForPath(location.pathname)
+  const discoveringDesktopPlugin = shouldDeferUnknownRouteForDesktopPlugins(
+    location.pathname,
+    desktopPlugins.loading,
+    Boolean(desktopPlugin)
+  )
 
   const busyRef = useRef(false)
   const creatingSessionRef = useRef(false)
@@ -171,7 +186,7 @@ export function DesktopController() {
   // hover-reveal overlay becomes the way in. Restores once it's wide again.
   const narrowViewport = useMediaQuery(SIDEBAR_COLLAPSE_MEDIA_QUERY)
 
-  const routedSessionId = routeSessionId(location.pathname)
+  const routedSessionId = discoveringDesktopPlugin ? null : routeSessionId(location.pathname)
   const routeToken = `${location.pathname}:${location.search}:${location.hash}`
   const routeTokenRef = useRef(routeToken)
   routeTokenRef.current = routeToken
@@ -1206,22 +1221,32 @@ export function DesktopController() {
             }
             path="artifacts"
           />
-          <Route
-            element={
-              <Suspense fallback={null}>
-                <ProductCreativeView />
-              </Suspense>
-            }
-            path="product-creative"
-          />
           <Route element={null} path="cron" />
           <Route element={null} path="profiles" />
           <Route element={null} path="settings" />
           <Route element={null} path="command-center" />
           <Route element={null} path="agents" />
+          <Route element={null} path="starmap" />
           <Route element={<Navigate replace to={NEW_CHAT_ROUTE} />} path="new" />
           <Route element={<LegacySessionRedirect />} path="sessions/:sessionId" />
-          <Route element={<Navigate replace to={NEW_CHAT_ROUTE} />} path="*" />
+          <Route
+            element={
+              desktopPlugin ? (
+                <DesktopPluginPage
+                  error={desktopPlugins.errors[desktopPlugin.name]}
+                  manifest={desktopPlugin}
+                  status={desktopPlugins.statuses[desktopPlugin.name] || 'loading'}
+                />
+              ) : discoveringDesktopPlugin ? (
+                <div className="flex h-full items-center justify-center p-6 text-sm" role="status">
+                  Loading Desktop plugins…
+                </div>
+              ) : (
+                <Navigate replace to={NEW_CHAT_ROUTE} />
+              )
+            }
+            path="*"
+          />
         </Routes>
       </PaneMain>
       {/*

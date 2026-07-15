@@ -1414,8 +1414,7 @@ export const ja = defineLocale({
       'new-session': '新しいセッション',
       skills: 'スキルとツール',
       messaging: 'メッセージング',
-      artifacts: 'アーティファクト',
-      'product-creative': 'Product Creative'
+      artifacts: 'アーティファクト'
     },
     searchAria: 'セッションを検索',
     searchPlaceholder: 'セッションを検索…',

@@ -95,7 +95,8 @@ import {
   setCurrentCwd
 } from '@/store/session'
 
-import { type AppView, ARTIFACTS_ROUTE, MESSAGING_ROUTE, PRODUCT_CREATIVE_ROUTE, SKILLS_ROUTE } from '../../routes'
+import { useDesktopPlugins } from '../../desktop-plugins/registry'
+import { type AppView, ARTIFACTS_ROUTE, MESSAGING_ROUTE, SKILLS_ROUTE } from '../../routes'
 import type { SidebarNavItem } from '../../types'
 
 import { countLabel } from './chrome'
@@ -144,13 +145,7 @@ const SIDEBAR_NAV: SidebarNavItem[] = [
     route: SKILLS_ROUTE
   },
   { id: 'messaging', label: '', icon: props => <Codicon name="comment" {...props} />, route: MESSAGING_ROUTE },
-  { id: 'artifacts', label: '', icon: props => <Codicon name="files" {...props} />, route: ARTIFACTS_ROUTE },
-  {
-    id: 'product-creative',
-    label: 'Product Creative',
-    icon: props => <Codicon name="wand" {...props} />,
-    route: PRODUCT_CREATIVE_ROUTE
-  }
+  { id: 'artifacts', label: '', icon: props => <Codicon name="files" {...props} />, route: ARTIFACTS_ROUTE }
 ]
 
 // Two modes via the `compact` height variant (styles.css):
@@ -234,6 +229,27 @@ export function ChatSidebar({
   onTriggerCronJob
 }: ChatSidebarProps) {
   const { t } = useI18n()
+  const desktopPlugins = useDesktopPlugins()
+
+  const sidebarNav = useMemo(() => {
+    const items = [...SIDEBAR_NAV]
+
+    for (const plugin of desktopPlugins.manifests.filter(item => desktopPlugins.statuses[item.name] === 'ready')) {
+      const item: SidebarNavItem = {
+        id: `desktop-plugin:${plugin.name}`,
+        label: plugin.label,
+        icon: props => <Codicon name={plugin.icon as never} {...props} />,
+        route: plugin.path
+      }
+
+      const match = /^(before|after):(.+)$/.exec(plugin.position)
+      const targetIndex = match ? items.findIndex(candidate => candidate.id === match[2]) : -1
+      items.splice(targetIndex < 0 ? items.length : targetIndex + (match?.[1] === 'after' ? 1 : 0), 0, item)
+    }
+
+    return items
+  }, [desktopPlugins.manifests, desktopPlugins.statuses])
+
   const s = t.sidebar
   const sidebarOpen = useStore($sidebarOpen)
   // Collapsed-but-overlay-mounted → render the full sidebar, not just the nav rail.
@@ -1053,13 +1069,14 @@ export function ChatSidebar({
         <SidebarGroup className="shrink-0 p-0 pb-2 pt-[calc(var(--titlebar-height)+0.375rem)]">
           <SidebarGroupContent>
             <SidebarMenu className="gap-px">
-              {SIDEBAR_NAV.map(item => {
+              {sidebarNav.map(item => {
                 const isInteractive = Boolean(item.action) || Boolean(item.route)
 
                 const active =
                   (item.id === 'skills' && currentView === 'skills') ||
                   (item.id === 'messaging' && currentView === 'messaging') ||
-                  (item.id === 'artifacts' && currentView === 'artifacts')
+                  (item.id === 'artifacts' && currentView === 'artifacts') ||
+                  (item.id.startsWith('desktop-plugin:') && item.route === window.location.hash.slice(1))
 
                 const isNewSession = item.id === 'new-session'
 
@@ -1092,7 +1109,7 @@ export function ChatSidebar({
 
                         onNavigate(item)
                       }}
-                      tooltip={s.nav[item.id] ?? item.label}
+                      tooltip={(s.nav as Record<string, string>)[item.id] ?? item.label}
                       type="button"
                     >
                       <item.icon className="size-4 shrink-0 text-[color-mix(in_srgb,currentColor_72%,transparent)]" />

@@ -1307,8 +1307,7 @@ export const en: Translations = {
       'new-session': 'New session',
       skills: 'Skills & Tools',
       messaging: 'Messaging',
-      artifacts: 'Artifacts',
-      'product-creative': 'Product Creative'
+      artifacts: 'Artifacts'
     },
     searchAria: 'Search sessions',
     searchPlaceholder: 'Search sessions…',
