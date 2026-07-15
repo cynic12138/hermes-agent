@@ -1,9 +1,9 @@
 # M10 产品认知驱动的自主创作智能体：实施与恢复说明
 
-> 状态：PARTIAL（已在工作区实现并通过离线验证；未提交、未推送、未发布；真实 Provider 与平台抓取尚待用户现场验收）
+> 状态：PARTIAL（实现已本地提交为 `33d096f` 并通过离线验证；未推送、未发布；真实 Provider 与平台抓取尚待用户现场验收）
 > 日期：2026-07-15
 > 分支：`product-creative-runtime`
-> 实施基线 HEAD：`8ba592cdca0e835580771795cafea424e3618e0d`
+> 实现提交：`33d096fa1a4439ef7fbcc7ee9ccb653332582414`
 
 ## 1. 目标与非目标
 
@@ -254,4 +254,4 @@ Desktop/查询：
 4. tests / public-surface compatibility；
 5. M10 documentation and project state。
 
-未经用户再次授权，不 commit、push、tag 或 release。
+M10 实现和知识文档已按用户授权本地提交；未经用户再次授权，不 push、tag 或 release。

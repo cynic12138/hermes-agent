@@ -6,7 +6,7 @@
 
 - 目标：在 Hermes 上维护长期 Product Brain，编排产品文案/图片/视频工作流，并把反馈经人工确认安全沉淀为下一轮生成上下文。
 - 已提交基线：M9.1 通用 Desktop Plugin SDK + plugin-owned UI（实现提交 `83b4e8f`），尚未 push/release。
-- 当前工作区：M10 产品认知驱动的自主创作闭环已实现但未提交；Live Provider/sidecar 和用户验收未完成，状态为 PARTIAL。
+- 当前基线：M10 产品认知驱动的自主创作闭环已本地提交为 `33d096f`；Live Provider/sidecar 和用户验收未完成，状态为 PARTIAL，尚未 push/release。
 - 当前 MVP：自然语言建/续 Creative Task，任务级 Readiness 与追问，授权研究/生成，Desktop 审阅/确认/恢复；真实 provider 双重 opt-in。
 - 暂不做：新 provider/抓取器、Theme Brain、GEO/自动发帖、矩阵/投放闭环、完整工作台、云/多租户扩展，除非用户批准。
 

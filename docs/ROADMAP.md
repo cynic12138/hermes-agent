@@ -11,7 +11,7 @@
 
 验收：focused tests、typecheck/build、M9 recovery/public surface、隔离 E2E 通过；source 行为、版本、升级/回滚、无敏感数据分发均明确。
 
-## 当前阶段：M10 产品认知驱动的自主创作（PARTIAL，工作区未提交）
+## 当前阶段：M10 产品认知驱动的自主创作（PARTIAL，本地提交 `33d096f`，未 push/release）
 
 已实现自然语言 Creative Task、Evidence/Draft/Canonical/Task Context 分层、Readiness 与主动追问、有界 Goal Planner、任务授权、灵感/素材编排、Mock 文图视频交付、反馈 proposal/确认写回、Desktop 五视图增量和真实 Provider 的默认关闭 runner。
 
@@ -25,7 +25,7 @@ M10 仍未 DONE：真实网页/XHS/抖音和真实视频 Provider 未现场运�
 
 ## 风险
 
-未提交 M10 工作区丢失、M9.1 未 push、全量宿主 UI 既有失败、enabled plugin 信任边界、remote media descriptor、外部 provider/sidecar 不可复现。
+M10/M9.1 尚未 push、全量宿主 UI 既有失败、enabled plugin 信任边界、remote media descriptor、外部 provider/sidecar 不可复现。
 
 ## 明确暂不开发
 

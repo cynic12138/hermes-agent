@@ -2,9 +2,9 @@
 
 - 最后更新：2026-07-15
 - 分支：`product-creative-runtime`
-- 当前 HEAD：`8ba592cdca0e835580771795cafea424e3618e0d`
+- 当前 HEAD：进入项目时运行 `git rev-parse HEAD`；M10 实现提交为 `33d096f`
 - M9.1 实现基线：`83b4e8f`
-- 当前工作区：M10 PARTIAL，未提交/未推送/未发布
+- 当前阶段：M10 PARTIAL，已本地提交/未推送/未发布
 
 ## 新会话先读
 
@@ -34,7 +34,7 @@ M10 必读 `docs/M10_PRODUCT_COGNITION_AUTONOMOUS_CREATION_IMPLEMENTATION.md` �
 
 ## 当前待办/下一入口
 
-先完成 M10 工作区最终审阅/提交（提交需用户单独授权）。之后唯一推荐任务为 M10.1 Live 纵向验收与适配器硬化：选择现有一个视频 Provider 和已存在数据源，使用严格调用上限，不新增平台。`pytest-of-unknown/` 不删除、不提交。
+M10 实现已本地提交为 `33d096f`。下一唯一推荐任务为 M10.1 Live 纵向验收与适配器硬化：选择现有一个视频 Provider 和已存在数据源，使用任务级调用上限，不新增平台。`pytest-of-unknown/` 不删除、不提交。
 
 ## 阻塞
 

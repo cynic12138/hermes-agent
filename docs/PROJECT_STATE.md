@@ -3,11 +3,11 @@
 - 日期：2026-07-15
 - 分支：`product-creative-runtime`
 - M9.1 实现提交：`83b4e8f`
-- 当前 HEAD：`8ba592cdca0e835580771795cafea424e3618e0d`
+- M10 实现提交：`33d096f`
 - 已提交阶段：M9.1 Desktop Plugin SDK 迁移（DONE、本地已提交）
-- 当前工作区阶段：M10 产品认知驱动的自主创作智能体（PARTIAL、未提交）
+- 当前阶段：M10 产品认知驱动的自主创作智能体（PARTIAL、本地已提交、未 push/release）
 - 发布阶段：未 push、未 tag、未 release
-- 工作区保护状态：存在 tracked/untracked M10 实现与知识文档；未执行 clean/stash/reset/checkout；既有 `pytest-of-unknown/` 保持未跟踪。
+- 工作区保护状态：M10 实现已本地提交；未执行 clean/stash/reset/checkout；既有 `pytest-of-unknown/` 保持未跟踪。
 
 ## DONE
 
@@ -27,7 +27,7 @@
 ## PARTIAL
 
 - M9.1 尚未 push/release；云端分发仓库未修改。
-- M10 自然语言 Creative Task：已实现产品认知分层、任务 Readiness、主动追问、有界编排、任务授权、素材/灵感、Mock 文图视频、反馈学习、Desktop 可见性和 Fake live provider 恢复；工作区未提交。
+- M10 自然语言 Creative Task：已实现产品认知分层、任务 Readiness、主动追问、有界编排、任务授权、素材/灵感、Mock 文图视频、反馈学习、Desktop 可见性和 Fake live provider 恢复；实现提交为 `33d096f`。
 - M10 Live：真实 image/video/VLM provider 默认关闭，未使用真实凭据/网络验收；XHS/Douyin sidecar 是仓库外依赖，未现场验证。
 - M10 用户验收：尚未完成一次新产品自然语言建脑和一次真实可播放视频交付。
 
@@ -71,6 +71,6 @@
 
 ## 下一步推荐
 
-先审阅并提交当前 M10 工作区（需用户单独授权）；随后唯一推荐开发任务是 M10.1 Live 纵向验收与适配器硬化。开始 Live 前必须由用户确认测试产品/素材、Provider、数据源、Cookie 范围和费用上限。实施细节见 `docs/M10_PRODUCT_COGNITION_AUTONOMOUS_CREATION_IMPLEMENTATION.md`。
+下一唯一推荐开发任务是 M10.1 Live 纵向验收与适配器硬化。开始 Live 前必须确认测试产品/素材、Provider、数据源、Cookie 范围和调用上限。实施细节见 `docs/M10_PRODUCT_COGNITION_AUTONOMOUS_CREATION_IMPLEMENTATION.md`。
 
 待确认问题见 `docs/OPEN_QUESTIONS.md`。
