@@ -314,6 +314,7 @@ def check_live_readiness(
     supported_types = _list(entry.get("supported_types"))
     supported_modes = _list(entry.get("supported_modes"))
     required_config = _list(entry.get("requires_config"))
+    required_config_any = _list(entry.get("requires_config_any"))
 
     if clean_kind and clean_kind not in supported_types:
         blockers.append(f"provider does not support {clean_kind}")
@@ -329,6 +330,11 @@ def check_live_readiness(
             missing_config.append(key)
     if missing_config:
         blockers.append("missing required environment config: " + ", ".join(missing_config))
+    if required_config_any and not any(_env_value(str(item)) for item in required_config_any):
+        blockers.append(
+            "missing one of required environment config: "
+            + ", ".join(str(item) for item in required_config_any)
+        )
     if entry.get("endpoint_env") and not provider_endpoint(entry):
         blockers.append(f"missing provider endpoint env: {entry.get('endpoint_env')}")
     if entry.get("model_env") and not provider_model(entry):
@@ -367,6 +373,7 @@ def check_live_readiness(
         "blockers": blockers,
         "warnings": warnings,
         "required_config": required_config,
+        "required_config_any": required_config_any,
         "missing_config": missing_config,
         "payload_validation": validation,
         "external_call_performed": False,

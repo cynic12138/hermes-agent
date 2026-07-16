@@ -228,6 +228,18 @@ def _offline_action_args(task: CreativeTaskRecord, action: str) -> dict:
             "note": f"Approved only for Creative Task {task.task_id}.",
             "confirmed": True,
         }
+    if action == "compose_exact_main_video":
+        return {
+            "product_id": product_id,
+            "asset": selected_id,
+            "theme": _effective_goal(task),
+            "template": "anime_story",
+            "duration": 10,
+            "fps": 24,
+        }
+    if action == "review_generated_result":
+        _, result_id = _latest_generated_result(task)
+        return {"product_id": product_id, "result_id": result_id}
     return {"product_id": product_id}
 
 
@@ -263,9 +275,19 @@ def _prepare_video_material_understanding(task: CreativeTaskRecord, intent_outpu
         elif next_step.get("step") == "visual_align":
             action = "align_visual_analysis"
             latest_analysis = _latest_capability_output(task, "analyze_material_image")
+            related_artifacts = (
+                intent.get("related_artifacts")
+                if isinstance(intent.get("related_artifacts"), dict)
+                else {}
+            )
             args = {
                 "product_id": task.product_id,
-                "analysis": latest_analysis.get("analysis_id", ""),
+                # The intent resolver can select an analysis that predates
+                # this Creative Task. Prefer a task-local analysis when one
+                # was just created, otherwise reuse the durable analysis id
+                # already attached to the resolved video intent.
+                "analysis": latest_analysis.get("analysis_id", "")
+                or related_artifacts.get("image_analysis_id", ""),
                 "note": "Task-scoped alignment for creative preparation; no Product Brain writeback.",
             }
         else:
@@ -770,6 +792,8 @@ def _latest_generated_result(task: CreativeTaskRecord) -> tuple[str, str]:
             result_id = output.get("result_id") or result.get("result_id")
             if result_id:
                 return "video", str(result_id)
+        if action == "compose_exact_main_video" and output.get("result_id"):
+            return "video", str(output["result_id"])
         if action == "submit_image_generation_job":
             run = output.get("image_generation_run") if isinstance(output.get("image_generation_run"), dict) else {}
             jobs = run.get("jobs") if isinstance(run.get("jobs"), list) else []
@@ -946,6 +970,98 @@ def _load_or_start_discovery_session(task: CreativeTaskRecord) -> DiscoverySessi
         )
 
 
+def _recheck_blocked_product_preparation(task: CreativeTaskRecord) -> CreativeTaskRecord:
+    """Re-run only local preparation after a product prerequisite changes."""
+
+    paid_actions = {"submit_image_generation_job", "submit_video_generation_task"}
+    if any(
+        step.action in paid_actions and step.status == "COMPLETED"
+        for step in task.plan.actions
+    ):
+        return task
+    start_index = next(
+        (
+            index
+            for index, step in enumerate(task.plan.actions)
+            if step.action
+            in {"prepare_task_material_pack", "resolve_image_intent", "resolve_video_intent"}
+        ),
+        -1,
+    )
+    if start_index < 0:
+        return task
+    for step in task.plan.actions[start_index:]:
+        step.status = "PENDING"
+    task.status = "READY"
+    task.current_stage = task.plan.actions[start_index].stage
+    task.blocked_reason = ""
+    advance_offline_preparation(task)
+    execute_authorized_live_generation(task)
+    return task
+
+
+def _retry_failed_local_delivery(task: CreativeTaskRecord) -> bool:
+    """Retry post-generation local delivery without reopening paid actions."""
+
+    if task.status != "FAILED_FINAL":
+        return False
+    failed_indexes = [
+        index for index, step in enumerate(task.plan.actions) if step.status == "FAILED"
+    ]
+    if not failed_indexes or any(task.plan.actions[index].stage != "DELIVERING" for index in failed_indexes):
+        return False
+    paid_actions = {"submit_image_generation_job", "submit_video_generation_task"}
+    paid_steps = [step for step in task.plan.actions if step.action in paid_actions]
+    if not paid_steps or any(step.status != "COMPLETED" for step in paid_steps):
+        return False
+    first_failed = min(failed_indexes)
+    if any(step.status != "COMPLETED" for step in task.plan.actions[:first_failed]):
+        return False
+    for step in task.plan.actions[first_failed:]:
+        if step.stage == "DELIVERING" and step.status in {"FAILED", "PENDING"}:
+            step.status = "PENDING"
+    task.status = "READY"
+    task.current_stage = "DELIVERING"
+    task.blocked_reason = ""
+    advance_offline_preparation(task)
+    return True
+
+
+def _apply_task_constraint_revision(task: CreativeTaskRecord, message: str) -> bool:
+    """Replan an unapproved task when the user adds a stricter packaging constraint."""
+
+    normalized = (message or "").strip()
+    if not normalized or task.authorization_id or task.request.preserve_exact_packaging:
+        return False
+    combined = CreativeTaskRequest.from_message(f"{task.request.raw_message}\n{normalized}")
+    if not combined.preserve_exact_packaging:
+        return False
+    task.revision_messages.append(normalized)
+    task.result_descriptors.append(
+        {
+            "type": "task_plan_revision",
+            "revision": len(task.revision_messages),
+            "reason": "stricter_exact_packaging_constraint",
+            "message": normalized,
+            "original_goal_preserved": True,
+            "created_at": now_iso(),
+        }
+    )
+    task.request.preserve_exact_packaging = True
+    _replan_task(task)
+    task.readiness = assess_product_readiness(
+        task.product_id,
+        task.request,
+        task_id=task.task_id,
+    )
+    task.questions = list(task.readiness.questions)
+    task.status = "READY" if task.readiness.ready else "NEEDS_INPUT"
+    task.current_stage = "UNDERSTANDING"
+    task.blocked_reason = "" if task.readiness.ready else "Product knowledge is incomplete for this task."
+    _ensure_authorization_request(task)
+    return True
+
+
 def continue_creative_task(
     product_id: str,
     task_id: str,
@@ -1020,6 +1136,20 @@ def continue_creative_task(
         write_json(task_path, task.model_dump(mode="json"))
         return task
 
+    if (
+        task.status == "BLOCKED_AUTHORIZATION"
+        and not authorization_id
+        and _apply_task_constraint_revision(task, message)
+    ):
+        if task.readiness.ready:
+            advance_offline_preparation(task)
+        task.updated_at = now_iso()
+        task_path = Path(task.artifact_path) if task.artifact_path else (
+            ensure_product(task.product_id) / "artifacts" / "creative_tasks" / f"{task.task_id}.json"
+        )
+        write_json(task_path, task.model_dump(mode="json"))
+        return task
+
     if authorization_id:
         if authorization_id == task.authorization_request_id:
             authorization = approve_task_authorization(
@@ -1044,6 +1174,21 @@ def continue_creative_task(
         advance_offline_preparation(task)
         execute_authorized_mock_generation(task)
         execute_authorized_live_generation(task)
+        task_path = Path(task.artifact_path) if task.artifact_path else (
+            ensure_product(task.product_id) / "artifacts" / "creative_tasks" / f"{task.task_id}.json"
+        )
+        write_json(task_path, task.model_dump(mode="json"))
+        return task
+    if task.status == "BLOCKED_PRODUCT":
+        _recheck_blocked_product_preparation(task)
+        task.updated_at = now_iso()
+        task_path = Path(task.artifact_path) if task.artifact_path else (
+            ensure_product(task.product_id) / "artifacts" / "creative_tasks" / f"{task.task_id}.json"
+        )
+        write_json(task_path, task.model_dump(mode="json"))
+        return task
+    if task.status == "FAILED_FINAL" and _retry_failed_local_delivery(task):
+        task.updated_at = now_iso()
         task_path = Path(task.artifact_path) if task.artifact_path else (
             ensure_product(task.product_id) / "artifacts" / "creative_tasks" / f"{task.task_id}.json"
         )

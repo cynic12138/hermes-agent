@@ -121,7 +121,18 @@ class CreativeTaskRequest(ContractModel):
             ),
             preserve_exact_packaging=any(
                 marker in text
-                for marker in ("包装不能变", "包装不变", "不能改变包装", "主图不能变", "不重绘")
+                for marker in (
+                    "包装不能变",
+                    "包装不变",
+                    "不能改变包装",
+                    "主图不能变",
+                    "不重绘",
+                    "不得重绘",
+                    "禁止重绘",
+                    "原始像素",
+                    "逐帧保持",
+                    "像素级保持",
+                )
             ),
         )
 

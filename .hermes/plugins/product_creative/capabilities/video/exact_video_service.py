@@ -149,38 +149,31 @@ def _latest_analysis_for_material(base: Path, material_id: str) -> Dict[str, Any
     return sorted(matches, key=lambda item: _text(item.get("created_at")))[-1] if matches else {}
 
 def _story_claims(state: Dict[str, Any], analysis: Dict[str, Any], template: str) -> Dict[str, Any]:
-    observations = analysis.get("visual_observations") if isinstance(analysis.get("visual_observations"), dict) else {}
-    packaging = _text(observations.get("packaging"))
-    visible_text = [str(item).strip() for item in _list(observations.get("visible_text")) if str(item).strip()]
-    candidates: List[str] = []
-    parsed = ((analysis.get("provider_output") or {}).get("parsed_json") or {})
-    candidates.extend([str(item).strip() for item in _list(parsed.get("packaging_text_candidates")) if str(item).strip()])
-    if packaging:
-        candidates.extend([item.strip() for item in packaging.split(";") if item.strip()])
-    for item in visible_text:
-        for token in ["不加色素", "不加香精", "不加防腐剂", "酸甜好滋味", "金银花柚子汁", "怕添加，就喝金豆芽"]:
-            if token in item:
-                candidates.append(token)
-    deduped: List[str] = []
-    for item in candidates:
-        if item and item not in deduped:
-            deduped.append(item)
     safe = state.get("generation_safe") if isinstance(state.get("generation_safe"), dict) else {}
     product_name = safe.get("product_name") or state.get("name") or "当前产品"
-    template_config = EXACT_MAIN_VIDEO_TEMPLATES.get(template, EXACT_MAIN_VIDEO_TEMPLATES["anime_story"])
+    confirmed_points = [
+        str(item).strip()
+        for item in _list(safe.get("selling_points"))
+        if str(item).strip()
+    ][:3]
     return {
         "product_name": product_name,
-        "template_title": template_config["title"],
-        "hook": template_config["hook"],
-        "need": template_config["need"],
-        "intro": f"{template_config['intro_prefix']}{product_name}",
-        "taste": template_config["taste"],
-        "badge_line": template_config["badge_line"],
-        "final_line": template_config["final_line"],
-        "footer": template_config["footer"],
-        "beats": template_config["beats"],
-        "badges": [item for item in deduped if item in {"不加色素", "不加香精", "不加防腐剂"}][:3] or ["酸甜好滋味", "清爽口感", "随手一袋"],
-        "cta": "怕添加，就喝金豆芽" if "金豆芽" in str(product_name) or any("金豆芽" in item for item in deduped) else f"今天就试试{product_name}",
+        "template_title": "产品故事展示",
+        "hook": "从一个细节开始",
+        "need": "让场景围绕产品展开",
+        "intro": f"认识一下{product_name}",
+        "taste": "产品主体保持真实，创意只发生在画面外部",
+        "badge_line": "产品细节，清晰呈现",
+        "final_line": "保持产品真实，拓展场景表达",
+        "footer": "产品创意小剧场",
+        "beats": [
+            {"time": "0-25%", "beat": "neutral visual hook outside the fixed product image"},
+            {"time": "25-50%", "beat": "introduce the fixed product image without redrawing it"},
+            {"time": "50-72%", "beat": "show confirmed product points outside the fixed image"},
+            {"time": "72-100%", "beat": "finish with the unchanged product image"},
+        ],
+        "badges": confirmed_points or ["产品细节", "场景灵感", "视觉记忆"],
+        "cta": product_name,
     }
 
 def create_exact_main_image_video(

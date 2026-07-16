@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 from typing import Any, List
+from urllib.parse import urlsplit, urlunsplit
 
 
-__all__ = ["find_first_key", "find_urls"]
+__all__ = ["find_first_key", "find_urls", "redact_url_credentials", "sanitize_urls"]
 
 
 def _text(value: Any) -> str:
@@ -48,3 +49,25 @@ def find_first_key(value: Any, keys: set[str]) -> str:
             if found:
                 return found
     return ""
+
+
+def redact_url_credentials(value: Any) -> str:
+    """Remove transient query credentials before persisting provider URLs."""
+
+    url = _text(value)
+    if not (url.startswith("http://") or url.startswith("https://")):
+        return url
+    parts = urlsplit(url)
+    return urlunsplit((parts.scheme, parts.netloc, parts.path, "", ""))
+
+
+def sanitize_urls(value: Any) -> Any:
+    """Copy a provider response while redacting query credentials from URLs."""
+
+    if isinstance(value, str):
+        return redact_url_credentials(value)
+    if isinstance(value, list):
+        return [sanitize_urls(item) for item in value]
+    if isinstance(value, dict):
+        return {key: sanitize_urls(item) for key, item in value.items()}
+    return value

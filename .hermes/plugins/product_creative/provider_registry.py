@@ -41,12 +41,24 @@ def env_value(key: str) -> str:
         return ""
     try:
         import winreg
-
-        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Environment") as env_key:
-            stored, _ = winreg.QueryValueEx(env_key, key)
-            return str(stored)
     except Exception:
         return ""
+    registry_locations = (
+        (winreg.HKEY_CURRENT_USER, "Environment"),
+        (
+            winreg.HKEY_LOCAL_MACHINE,
+            r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment",
+        ),
+    )
+    for root, path in registry_locations:
+        try:
+            with winreg.OpenKey(root, path) as env_key:
+                stored, _ = winreg.QueryValueEx(env_key, key)
+                if stored:
+                    return str(stored)
+        except Exception:
+            continue
+    return ""
 
 
 def list_providers(kind: str | None = None) -> Dict[str, Any]:

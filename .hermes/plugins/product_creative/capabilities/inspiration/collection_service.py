@@ -196,7 +196,13 @@ def _xhs_live(sidecar_url: str, query: str, limit: int, wait_seconds: int, auto_
         "items": [_xhs_item(item) for item in raw_notes[:limit] if isinstance(item, dict)],
     }
 
-def _douyin_live(sidecar_url: str, query: str, limit: int, transcribe_limit: int) -> Dict[str, Any]:
+def _douyin_live(
+    sidecar_url: str,
+    query: str,
+    limit: int,
+    transcribe_limit: int,
+    analyze_first5_limit: int,
+) -> Dict[str, Any]:
     base_url = sidecar_url.rstrip("/")
     health = _get_json(f"{base_url}/api/health", timeout=10)
     search = _post_json(
@@ -214,13 +220,15 @@ def _douyin_live(sidecar_url: str, query: str, limit: int, transcribe_limit: int
     )
     items = [_douyin_item(item) for item in _list(search.get("items"))[:limit] if isinstance(item, dict)]
     transcribed = 0
+    transcript_attempts = 0
     transcript_errors = []
     for item in items:
-        if transcribed >= max(0, int(transcribe_limit or 0)):
+        if transcript_attempts >= max(0, int(transcribe_limit or 0)):
             break
         url = _text(item.get("url"))
         if not url:
             continue
+        transcript_attempts += 1
         try:
             result = _post_json(
                 f"{base_url}/api/video/transcribe-online",
@@ -234,7 +242,44 @@ def _douyin_live(sidecar_url: str, query: str, limit: int, transcribe_limit: int
         except Exception as exc:
             item["transcript_status"] = "failed"
             transcript_errors.append({"url": url, "error": str(exc)[:300]})
-    return {"health": health, "search": search, "items": items, "transcribed_count": transcribed, "transcript_errors": transcript_errors}
+    first5_analyzed = 0
+    first5_attempts = 0
+    first5_errors = []
+    for item in items:
+        if first5_attempts >= max(0, int(analyze_first5_limit or 0)):
+            break
+        url = _text(item.get("url"))
+        if not url:
+            continue
+        first5_attempts += 1
+        try:
+            result = _post_json(
+                f"{base_url}/api/video/analyze-first5",
+                {"url": url, "api_key": "", "siliconflow_api_key": ""},
+                timeout=360,
+            )
+            item["first5_analysis"] = {
+                "model": _text(result.get("model")),
+                "input_mode": _text(result.get("input_mode")),
+                "analyzed_seconds": result.get("analyzed_seconds"),
+                "analysis": result.get("analysis") if isinstance(result.get("analysis"), dict) else {},
+            }
+            item["first5_analysis_status"] = "completed"
+            first5_analyzed += 1
+        except Exception as exc:
+            item["first5_analysis_status"] = "failed"
+            first5_errors.append({"url": url, "error": str(exc)[:300]})
+    return {
+        "health": health,
+        "search": search,
+        "items": items,
+        "transcribed_count": transcribed,
+        "transcript_attempt_count": transcript_attempts,
+        "transcript_errors": transcript_errors,
+        "first5_analyzed_count": first5_analyzed,
+        "first5_attempt_count": first5_attempts,
+        "first5_analysis_errors": first5_errors,
+    }
 
 def _snapshot_markdown(snapshot: Dict[str, Any]) -> str:
     lines = [
@@ -275,6 +320,7 @@ def collect_external_source_snapshot(
     wait_seconds: int = 90,
     transcribe_limit: int = 1,
     auto_browser_cookie: bool = False,
+    analyze_first5_limit: int = 1,
 ) -> Dict[str, Any]:
     base = ensure_product(product_id)
     clean_provider = _text(provider) or "manual"
@@ -348,13 +394,23 @@ def collect_external_source_snapshot(
                 status = "needs_live_or_import"
                 risk_flags.append("Douyin sidecar requires mode=live or an import_path for dry validation.")
             else:
-                live = _douyin_live(sidecar_url or DEFAULT_DOUYIN_SIDECAR, clean_query, clean_limit, transcribe_limit)
+                live = _douyin_live(
+                    sidecar_url or DEFAULT_DOUYIN_SIDECAR,
+                    clean_query,
+                    clean_limit,
+                    transcribe_limit,
+                    analyze_first5_limit,
+                )
                 items = _list(live.get("items"))
                 raw_ref = {
                     "sidecar_url": sidecar_url or DEFAULT_DOUYIN_SIDECAR,
                     "search_count": (live.get("search") or {}).get("count"),
                     "transcribed_count": live.get("transcribed_count", 0),
+                    "transcript_attempt_count": live.get("transcript_attempt_count", 0),
                     "transcript_errors": live.get("transcript_errors", []),
+                    "first5_analyzed_count": live.get("first5_analyzed_count", 0),
+                    "first5_attempt_count": live.get("first5_attempt_count", 0),
+                    "first5_analysis_errors": live.get("first5_analysis_errors", []),
                 }
                 external_collection_performed = True
                 if not items:

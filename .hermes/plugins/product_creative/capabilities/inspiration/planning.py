@@ -27,6 +27,7 @@ def plan_collect_external_source_snapshot(context: Dict[str, Any]) -> Dict[str, 
                 "sidecar_url": "",
                 "wait_seconds": 90,
                 "transcribe_limit": 1,
+                "analyze_first5_limit": 1,
                 "auto_browser_cookie": False,
             }
 

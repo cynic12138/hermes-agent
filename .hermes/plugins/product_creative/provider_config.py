@@ -35,7 +35,16 @@ def provider_model(provider: Dict[str, Any]) -> str:
 
 
 def provider_api_key(provider: Dict[str, Any]) -> str:
-    auth_env = _text(provider.get("auth_env"))
-    return _env_value(auth_env) if auth_env else ""
+    auth_envs = [_text(provider.get("auth_env"))]
+    fallbacks = provider.get("auth_env_fallbacks")
+    if isinstance(fallbacks, list):
+        auth_envs.extend(_text(item) for item in fallbacks)
+    for auth_env in auth_envs:
+        if not auth_env:
+            continue
+        value = _env_value(auth_env)
+        if value:
+            return value
+    return ""
 
 

@@ -99,19 +99,22 @@ class GoalPlanner:
                 ]
             )
         if "video" in request.deliverables:
-            candidates.extend(
-                [
-                    ("IDEATING", "resolve_video_intent", ""),
-                    ("IDEATING", "create_video_brief", ""),
-                    ("IDEATING", "review_video_brief", ""),
-                    ("GENERATING", "build_video_provider_payload", ""),
-                    ("GENERATING", "check_video_reference_readiness", "provider_readiness"),
-                    ("GENERATING", "check_video_live_readiness", "provider_readiness"),
-                    ("GENERATING", "create_video_execution_policy", "human_confirmation"),
-                    ("GENERATING", "submit_video_generation_task", "task_authorization"),
-                    ("GENERATING", "check_video_task_status", "task_authorization"),
-                ]
-            )
+            if request.preserve_exact_packaging:
+                candidates.append(("GENERATING", "compose_exact_main_video", ""))
+            else:
+                candidates.extend(
+                    [
+                        ("IDEATING", "resolve_video_intent", ""),
+                        ("IDEATING", "create_video_brief", ""),
+                        ("IDEATING", "review_video_brief", ""),
+                        ("GENERATING", "build_video_provider_payload", ""),
+                        ("GENERATING", "check_video_reference_readiness", "provider_readiness"),
+                        ("GENERATING", "check_video_live_readiness", "provider_readiness"),
+                        ("GENERATING", "create_video_execution_policy", "human_confirmation"),
+                        ("GENERATING", "submit_video_generation_task", "task_authorization"),
+                        ("GENERATING", "check_video_task_status", "task_authorization"),
+                    ]
+                )
         if request.deliverables:
             candidates.append(("DELIVERING", "create_task_overview_package", ""))
         if any(item in request.deliverables for item in ("image", "video")):

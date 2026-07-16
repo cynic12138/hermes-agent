@@ -43,6 +43,7 @@ def _handle_product_external_source_collect(args: Dict[str, Any], **_kw: Any) ->
             int(a.get("wait_seconds") or 90),
             int(a.get("transcribe_limit") or 1),
             bool(a.get("auto_browser_cookie")),
+            int(a.get("analyze_first5_limit") or 1),
         ),
         args,
     )

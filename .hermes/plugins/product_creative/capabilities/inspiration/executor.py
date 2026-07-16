@@ -30,6 +30,7 @@ def _collect(args: Dict[str, Any]) -> Dict[str, Any]:
         int(args.get("wait_seconds") or 90),
         int(args.get("transcribe_limit") or 1),
         bool(args.get("auto_browser_cookie")),
+        int(args.get("analyze_first5_limit") or 1),
     )
 
 

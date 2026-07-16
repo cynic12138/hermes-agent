@@ -163,11 +163,23 @@ def _claim_lists(message: str) -> tuple[List[str], List[str]]:
     forbidden_match = re.search(r"禁止(.+)$", message)
 
     def split(value: str) -> List[str]:
-        return [
-            item.strip(" 。；;，,")
-            for item in re.split(r"(?:、|，|,|；|;|和|及|以及)", value)
-            if item.strip(" 。；;，,")
-        ]
+        result: List[str] = []
+        for raw in re.split(r"(?:、|，|,|；|;)", value):
+            item = raw.strip(" 。；;，,")
+            if not item:
+                continue
+            # A conjunction can be part of one claim (for example
+            # ``温和不刺激``). Split only when both sides are independently
+            # shaped compliance terms such as ``医疗功效和治疗表述``.
+            paired = re.fullmatch(
+                r"(.+(?:功效|效果|承诺|适用))和(.+(?:表述|功效|效果|承诺|适用))",
+                item,
+            )
+            if paired:
+                result.extend([paired.group(1).strip(), paired.group(2).strip()])
+            else:
+                result.append(item)
+        return result
 
     return (
         split(allowed_match.group(1)) if allowed_match else [],

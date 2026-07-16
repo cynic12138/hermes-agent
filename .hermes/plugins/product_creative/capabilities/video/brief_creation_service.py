@@ -175,82 +175,100 @@ def _storyboard(product_name: str, theme: str, selling_points: List[str], materi
         _set_provider_prompt_segment(shot)
     return shots
 
+def _needs_non_use_storyboard(selling_points: List[str], intent_message: str) -> bool:
+    if not selling_points:
+        return True
+    return any(
+        marker in intent_message
+        for marker in (
+            "不展示使用",
+            "不出现饮用",
+            "不展示打开",
+            "不作医疗",
+            "不得出现",
+            "禁止使用",
+            "健康声明",
+            "包装不重绘",
+        )
+    )
+
+
 def _non_use_storyboard(product_name: str, theme: str) -> List[Dict[str, Any]]:
     shots = [
         {
             "shot": 1,
             "duration": "0-2s",
             "purpose": "从可信产品参考图建立品牌识别",
-            "scene": "黄色半透明云朵/花朵产品包装保持未打开，置于温暖明亮的桌面",
+            "scene": "产品包装保持未打开，置于干净明亮的桌面，背景元素只作氛围陪衬",
             "action": "产品静止清晰出现，只做轻微镜头推进，不改变包装结构或文字",
             "camera": "9:16 竖屏产品近景",
             "motion": "缓慢 push-in，主体稳定",
-            "composition": "产品位于下方三分之一，保留上方暖色留白",
+            "composition": "产品位于视觉中心，保留上方留白",
             "product_visibility": "使用已登记参考图锁定包装身份，产品完整可见",
-            "lighting": "自然暖光，真实商业摄影",
-            "transition": "柔和光影溶解到人物场景",
-            "audio": "轻柔器乐与自然室内环境音，无功效口播",
+            "lighting": "柔和自然光，真实商业摄影",
+            "transition": "以背景光影自然衔接到包装细节",
+            "audio": "轻柔器乐与自然室内环境音，无口播",
             "caption": _caption(product_name, product_name),
-            "visual_prompt": "可信产品参考图，未打开的黄色半透明云朵/花朵包装，暖光桌面",
+            "visual_prompt": f"{product_name}可信参考图，未打开包装，干净桌面，柔和自然光",
             "negative_prompt": "不要打开产品，不要改变包装，不要新增包装文字，不要展示使用",
             "key_message": "产品识别",
             "reference_usage": "first_frame_or_primary_reference",
         },
         {
             "shot": 2,
-            "duration": "2-5s",
-            "purpose": "尊重地看见成年孕妇这一女性身份",
-            "scene": "约30岁的成年孕妇在窗边自然站立，神态平静自信，桌面远处可见未打开产品",
-            "action": "她轻抚腹部后望向窗外，不触碰、不拿取、不使用产品",
-            "camera": "中景侧面轮廓，人物主体完整自然",
-            "motion": "缓慢横移，动作克制",
-            "composition": "人物为主体，产品是小比例礼物场景元素",
-            "product_visibility": "产品保持未打开且不与身体或使用动作建立因果关系",
-            "lighting": "温暖窗光，不病态化、不幼态化",
-            "transition": "人物转身动作衔接女性群像",
-            "audio": "轻柔器乐，无医疗或孕期安全旁白",
-            "caption": "每一种女性身份",
-            "visual_prompt": "成年孕妇，尊重、自信、温暖窗光，产品只作远处未打开礼物元素",
-            "negative_prompt": "不要展示产品使用、饮用或打开，不要暗示孕期适用、安全或健康功效",
-            "key_message": "看见女性身份",
-            "reference_usage": "background_product_identity",
-        },
-        {
-            "shot": 3,
-            "duration": "5-8s",
-            "purpose": "扩展到不同女性身份的平等群像",
-            "scene": "不同年龄与职业气质的成年女性自然相聚，孕妇作为平等成员处于群像中",
-            "action": "女性们自然对视微笑，桌面产品保持未打开，无人拿取",
-            "camera": "竖屏中广角群像",
-            "motion": "轻微环绕，稳定真实",
-            "composition": "人物关系清楚，产品小比例位于前景桌面",
-            "product_visibility": "产品仅作为礼物静物，不展示使用",
-            "lighting": "现代、明亮、克制的商业摄影",
-            "transition": "花束前景擦过镜头进入收尾",
-            "audio": "音乐稍抬升，无促销口播",
-            "caption": "都值得被看见",
-            "visual_prompt": "多元成年女性群像，孕妇自然融入，未打开产品静置前景",
-            "negative_prompt": "不要医疗化、标签化或刻板化，不要展示产品使用",
-            "key_message": theme,
+            "duration": "2-4s",
+            "purpose": "展示包装轮廓与视觉细节",
+            "scene": "保持产品主体静止，用背景装饰和光影制造层次",
+            "action": "镜头沿包装边缘轻微横移，主体不旋转、不变形、不被手部遮挡",
+            "camera": "竖屏近景细节镜头",
+            "motion": "轻微横移与景深变化",
+            "composition": "包装文字区域保持清晰，装饰元素位于背景",
+            "product_visibility": "产品包装持续完整可识别",
+            "lighting": "柔和轮廓光，不制造错误高光或新文字",
+            "transition": "背景装饰元素擦过镜头进入场景镜头",
+            "audio": "轻微转场声与器乐节拍，无口播",
+            "caption": "产品细节",
+            "visual_prompt": f"{product_name}包装细节，主体静止，背景装饰与柔和光影",
+            "negative_prompt": "不要打开、使用或变形产品，不要新增文字、人物身份或功效暗示",
+            "key_message": "包装细节",
             "reference_usage": "visual_consistency",
         },
         {
+            "shot": 3,
+            "duration": "4-7s",
+            "purpose": "把产品置于自然的便携收纳场景",
+            "scene": "整洁桌面与随身包形成生活化背景，产品保持未打开并独立陈列",
+            "action": "背景人物只整理包外侧装饰，不触碰、不打开、不使用产品",
+            "camera": "中近景，产品保持前景清晰",
+            "motion": "缓慢横移，主体稳定",
+            "composition": "产品为前景视觉锚点，人物与包位于背景",
+            "product_visibility": "产品全程可见且不与任何身体或使用动作建立因果关系",
+            "lighting": "自然日光，生活化但不杂乱",
+            "transition": "景深回到产品主体进入尾帧",
+            "audio": "自然环境音与轻音乐，无促销口播",
+            "caption": "场景灵感",
+            "visual_prompt": f"{product_name}未打开陈列，整洁桌面与随身包背景，生活化自然光",
+            "negative_prompt": "不要展示使用、打开、入口、医疗场景或特定人群适用暗示",
+            "key_message": theme,
+            "reference_usage": "product_identity_lock",
+        },
+        {
             "shot": 4,
-            "duration": "8-10s",
-            "purpose": "以妇女节主题和产品礼物静物收束",
-            "scene": "回到未打开产品与淡粉花束的桌面，背景保留孕妇温柔轮廓",
-            "action": "镜头轻微拉近后定格，产品与人物无使用互动",
-            "camera": "产品近景与人物轮廓同框",
+            "duration": "7-10s",
+            "purpose": "回到可信产品主体完成品牌收束",
+            "scene": "回到未打开产品与低干扰装饰背景",
+            "action": "镜头轻微拉近后定格，不新增互动或信息",
+            "camera": "产品竖屏近景",
             "motion": "轻微拉近并停留",
-            "composition": "产品清晰但不夸大，人物轮廓表达陪伴与尊重",
+            "composition": "产品清晰完整，字幕不遮挡包装",
             "product_visibility": "包装依据参考图，不新增或改写包装文字",
-            "lighting": "暖光收束，保留真实质感",
+            "lighting": "柔和光线收束，保留真实质感",
             "transition": "自然淡出",
-            "audio": "音乐温柔收束",
-            "caption": "妇女节，看见她",
-            "visual_prompt": "未打开产品礼物静物，花束，成年孕妇温柔轮廓，9:16 收尾",
-            "negative_prompt": "不要功效、医疗、通便、营养、孕期适用或安全承诺",
-            "key_message": "妇女节，看见她",
+            "audio": "音乐简洁收束，无口播",
+            "caption": _caption(product_name, product_name),
+            "visual_prompt": f"{product_name}未打开产品静物，低干扰装饰，9:16 收尾",
+            "negative_prompt": "不要功效、医疗、健康、安全或人群适用承诺",
+            "key_message": "产品识别",
             "reference_usage": "final_identity_frame",
         },
     ]
@@ -379,18 +397,20 @@ def create_video_brief_from_intent(product_id: str, intent: str) -> Dict[str, An
     theme = _theme(intent_payload)
     points = _selling_points(state)
     source_assets = _source_assets(base, intent_payload, material)
-    storyboard = _storyboard(product_name, theme, points, _text(material.get("role")), platform)
     intent_message = _text(intent_payload.get("message"))
-    non_use_story = any(marker in intent_message for marker in ("不展示使用", "不出现饮用", "不展示打开", "不作医疗"))
-    if non_use_story:
-        storyboard = _non_use_storyboard(product_name, theme)
+    non_use_story = _needs_non_use_storyboard(points, intent_message)
+    storyboard = (
+        _non_use_storyboard(product_name, theme)
+        if non_use_story
+        else _storyboard(product_name, theme, points, _text(material.get("role")), platform)
+    )
     inspiration_context = latest_inspiration_context(base.name, platform or "video_brief")
     prompt = _prompt(product_name, theme, platform, storyboard, source_assets, state, inspiration_context)
     if non_use_story:
         prompt += (
             f"\n本次用户创意原文：{intent_message}\n"
-            "硬约束：产品只作为未打开的礼物或场景元素；不得展示打开、饮用或任何使用动作；"
-            "不得暗示医疗、通便、营养、孕期适用或安全；成年孕妇必须被尊重地呈现为有主体性的成年女性。"
+            "硬约束：产品保持未打开并依据参考图锁定身份；不得展示打开、入口或任何使用动作；"
+            "不得暗示医疗、健康、安全、人群适用或任何未经确认的产品效果。"
         )
     brief_id = f"video-brief-{timestamp()}"
     brief = {
@@ -415,12 +435,20 @@ def create_video_brief_from_intent(product_id: str, intent: str) -> Dict[str, An
             "style": _text((state.get("style_preferences") or {}).get("visual_tone")) or "真实自然、产品清晰、克制表达",
             "theme": theme,
             "estimated_duration": "0-10s" if non_use_story else "0-8.5s",
-            "pacing": "前1.5秒建立产品识别，3.5秒前完成核心卖点动作，6.5秒前进入真实使用场景，尾帧回到产品主体。",
-            "audio_plan": [
-                "默认生成轻快背景音。",
-                "保留开瓶、入杯、拿起等真实动作声。",
-                "如生成口播，只复述已确认产品事实和字幕短句。",
-            ],
+            "pacing": (
+                "前2秒建立产品识别，中段只展示包装细节与安全场景，尾帧回到产品主体。"
+                if non_use_story
+                else "前1.5秒建立产品识别，3.5秒前完成核心卖点动作，6.5秒前进入真实使用场景，尾帧回到产品主体。"
+            ),
+            "audio_plan": (
+                ["默认生成轻柔背景音。", "不生成使用动作声或口播。"]
+                if non_use_story
+                else [
+                    "默认生成轻快背景音。",
+                    "保留与已确认产品使用方式一致的真实动作声。",
+                    "如生成口播，只复述已确认产品事实和字幕短句。",
+                ]
+            ),
             "caption_plan": "字幕短句化，不超过 18 个中文字符，不新增未确认卖点。",
             "editing_rules": [
                 "每个镜头都必须保持产品主体可识别。",

@@ -63,6 +63,79 @@ def test_natural_language_goal_becomes_a_general_creative_task_request():
     assert request.raw_message.startswith("帮我做一个今天")
 
 
+def test_exact_packaging_video_uses_existing_local_composer_not_live_video_provider():
+    from product_creative.application.planner import GoalPlanner
+    from product_creative.contracts.models import CreativeTaskRequest
+
+    request = CreativeTaskRequest.from_message("用当前主图做一个产品视频，主图不能变，包装不能重绘")
+    actions = [step.action for step in GoalPlanner().creative_task_actions(request)]
+
+    assert "compose_exact_main_video" in actions
+    assert "submit_video_generation_task" not in actions
+    assert "build_video_provider_payload" not in actions
+
+
+def test_exact_packaging_detects_pixel_lock_and_forbidden_redraw_language():
+    from product_creative.contracts.models import CreativeTaskRequest
+
+    request = CreativeTaskRequest.from_message(
+        "主图和包装必须逐帧保持原始像素内容，不得重绘、改字、裁剪或风格化"
+    )
+
+    assert request.preserve_exact_packaging is True
+
+
+def test_authorization_blocked_video_can_be_replanned_to_exact_packaging(tmp_path):
+    from product_creative.runtime.creative_tasks import (
+        _apply_task_constraint_revision,
+        start_creative_task,
+    )
+    from product_creative.workspace import workspace_scope
+
+    with workspace_scope(tmp_path):
+        _create_mature_video_product(tmp_path)
+        task = start_creative_task(
+            "honeydew",
+            "用当前主图做一个10秒产品视频",
+            provider="volcengine-ark-video",
+        )
+
+        changed = _apply_task_constraint_revision(
+            task,
+            "补充硬约束：主图和包装必须逐帧保持原始像素，不得重绘、改字或裁剪",
+        )
+
+    actions = [step.action for step in task.plan.actions]
+    assert changed is True
+    assert task.request.preserve_exact_packaging is True
+    assert task.revision_messages[-1].startswith("补充硬约束")
+    assert "compose_exact_main_video" in actions
+    assert "submit_video_generation_task" not in actions
+    assert task.authorization_request_id == ""
+    assert task.authorization_id == ""
+
+
+def test_exact_main_video_story_is_product_neutral_without_confirmed_selling_points():
+    from product_creative.capabilities.video.exact_video_service import _story_claims
+
+    story = _story_claims(
+        {
+            "name": "周十五益生菌蜂蜜露",
+            "generation_safe": {
+                "product_name": "周十五益生菌蜂蜜露",
+                "selling_points": [],
+            },
+        },
+        {"visual_observations": {}, "provider_output": {}},
+        "anime_story",
+    )
+
+    rendered = json.dumps(story, ensure_ascii=False)
+    for forbidden in ("喝", "酸甜", "清爽", "口感", "配料", "开袋", "入口"):
+        assert forbidden not in rendered
+    assert story["product_name"] == "周十五益生菌蜂蜜露"
+
+
 def test_readiness_for_a_new_video_product_asks_only_the_highest_value_questions(tmp_path):
     from product_creative.brain.discovery import assess_product_readiness
     from product_creative.capabilities.product.workspace_service import create_product
@@ -130,8 +203,9 @@ def test_creative_task_persists_the_original_goal_and_a_bounded_cross_domain_pla
         "create_inspiration_pack",
     ]
     assert "prepare_task_material_pack" in actions
-    assert "resolve_video_intent" in actions
-    assert "submit_video_generation_task" in actions
+    assert "compose_exact_main_video" in actions
+    assert "resolve_video_intent" not in actions
+    assert "submit_video_generation_task" not in actions
     assert len(actions) <= 20
     assert 1 <= len(task.questions) <= 3
     assert Path(task.artifact_path).is_file()
@@ -191,6 +265,148 @@ def test_continuing_a_task_preserves_unknown_without_mutating_canonical_brain(tm
     assert session.turns[-1]["field_key"] == "claim_boundaries"
     assert before["brain_version_id"] == after["brain_version_id"]
     assert before["content_hash"] == after["content_hash"]
+
+
+def test_claim_boundary_parser_preserves_words_containing_conjunction_characters():
+    from product_creative.brain.discovery import _claim_lists
+
+    allowed, forbidden = _claim_lists(
+        "允许使用产品名称周十五益生菌蜂蜜露、包装外观可爱、方便随身携带；"
+        "禁止使用快速有效通便、温和不刺激、安全有效、孕妇适用、治疗便秘。"
+    )
+
+    assert allowed == ["产品名称周十五益生菌蜂蜜露", "包装外观可爱", "方便随身携带"]
+    assert forbidden == ["使用快速有效通便", "温和不刺激", "安全有效", "孕妇适用", "治疗便秘"]
+
+
+def test_video_task_reuses_existing_image_analysis_when_alignment_is_missing(tmp_path):
+    from product_creative.capabilities.material.visual_service import analyze_image_asset
+    from product_creative.runtime.creative_tasks import start_creative_task
+    from product_creative.workspace import workspace_scope
+
+    with workspace_scope(tmp_path):
+        material = _create_mature_video_product(tmp_path)
+        analysis = analyze_image_asset(
+            "honeydew",
+            material["material_id"],
+            "mock-vision",
+        )
+
+        task = start_creative_task("honeydew", "生成一个产品视频")
+
+    alignment_results = [
+        item
+        for item in task.result_descriptors
+        if item.get("type") == "capability_result"
+        and item.get("action") == "align_visual_analysis"
+    ]
+    assert alignment_results
+    assert (
+        alignment_results[-1]["output"]["alignment"]["source_analysis_id"]
+        == analysis["analysis_id"]
+    )
+
+
+def test_blocked_product_task_rechecks_local_preparation_after_prerequisite_changes(tmp_path):
+    from product_creative.common import write_json
+    from product_creative.runtime.creative_tasks import (
+        continue_creative_task,
+        start_creative_task,
+    )
+    from product_creative.workspace import workspace_scope
+
+    with workspace_scope(tmp_path):
+        _create_mature_video_product(tmp_path)
+        task = start_creative_task("honeydew", "生成一个产品视频")
+        before_resolves = sum(
+            1
+            for item in task.result_descriptors
+            if item.get("type") == "capability_result"
+            and item.get("action") == "resolve_video_intent"
+        )
+        task.status = "BLOCKED_PRODUCT"
+        task.current_stage = "IDEATING"
+        task.blocked_reason = "A previously missing local prerequisite was added."
+        write_json(Path(task.artifact_path), task.model_dump(mode="json"))
+
+        resumed = continue_creative_task(
+            "honeydew",
+            task.task_id,
+            "前置条件已经补齐，请继续",
+        )
+
+    after_resolves = sum(
+        1
+        for item in resumed.result_descriptors
+        if item.get("type") == "capability_result"
+        and item.get("action") == "resolve_video_intent"
+    )
+    assert resumed.status != "BLOCKED_PRODUCT"
+    assert after_resolves > before_resolves
+
+
+def test_non_use_video_storyboard_is_generic_and_never_invents_food_or_audience_usage():
+    from product_creative.capabilities.video.brief_creation_service import (
+        _needs_non_use_storyboard,
+        _non_use_storyboard,
+    )
+
+    assert _needs_non_use_storyboard([], "生成产品视频") is True
+    assert _needs_non_use_storyboard(
+        ["方便随身携带"],
+        "不得出现任何疗效、孕妇适用或使用动作",
+    ) is True
+
+    storyboard = _non_use_storyboard("测试产品", "产品短视频")
+    positive_text = " ".join(
+        str(shot.get(key) or "")
+        for shot in storyboard
+        for key in (
+            "purpose",
+            "scene",
+            "action",
+            "audio",
+            "caption",
+            "visual_prompt",
+            "key_message",
+        )
+    )
+    for forbidden in ("孕妇", "妇女节", "饮用", "享用", "开瓶", "入杯", "核心卖点"):
+        assert forbidden not in positive_text
+
+
+def test_background_only_image_brief_keeps_product_and_audience_out_of_generation_prompt():
+    from product_creative.capabilities.image.brief_service import (
+        _apply_image_intent_to_brief,
+    )
+
+    brief = {
+        "source_variant": 1,
+        "product": {"name": "测试产品"},
+        "target": {},
+        "copy": {"headline": "旧占位", "subheadline": "旧占位"},
+        "visual": {},
+        "generation_contract": {},
+    }
+    image_intent = {
+        "product_id": "test-product",
+        "message": (
+            "生成一张9:16竖屏背景图片，只生成粉紫色桌面、自然光影和云朵装饰；"
+            "不要生成或重绘产品、包装、文字、人物或使用动作"
+        ),
+        "style_direction": "干净、柔和、低干扰",
+    }
+
+    updated = _apply_image_intent_to_brief(brief, image_intent)
+    prompt = updated["generation_contract"]["prompt"]
+
+    assert "独立背景素材" in prompt
+    assert "不要生成或重绘产品" in prompt
+    assert updated["copy"]["headline"] == ""
+    assert updated["copy"]["text_to_render"] == []
+    assert "background_only" in updated["generation_contract"]["must_preserve"]
+    for forbidden in ("孕妇", "妇女节", "黄色半透明", "女性群像"):
+        assert forbidden not in prompt
 
 
 def test_readiness_does_not_promote_mutable_draft_state_to_confirmed_product_fact(tmp_path):
@@ -414,7 +630,7 @@ def test_authorized_mature_video_task_selects_material_and_prepares_provider_pay
 
         started = product_agent_turn(
             product_id="honeydew",
-            message="用当前主图帮我生成一个抖音产品视频，包装不能变化",
+            message="用当前主图帮我生成一个抖音产品视频，本测试允许生成模型改编画面",
         )
         advanced = product_agent_turn(
             product_id="honeydew",
@@ -578,6 +794,92 @@ def test_text_and_mock_image_share_the_same_natural_language_task_entry(tmp_path
     assert image_generated["task_status"] == "AWAITING_FEEDBACK", image_generated["blocked_reason"]
     assert len(image_submissions) == 1
     assert image_submissions[0]["output"]["external_call_count"] == 0
+
+
+def test_live_image_result_id_is_bound_into_delivery_review(tmp_path):
+    from product_creative.runtime.creative_tasks import _offline_action_args, start_creative_task
+    from product_creative.workspace import workspace_scope
+
+    with workspace_scope(tmp_path):
+        _create_mature_video_product(tmp_path)
+        task = start_creative_task(
+            "honeydew",
+            "帮我生成一张产品图片，产品主体和包装不能变化",
+            provider="volcengine-ark-image",
+        )
+        task.result_descriptors.append(
+            {
+                "type": "capability_result",
+                "action": "submit_image_generation_job",
+                "status": "succeeded",
+                "output": {
+                    "image_generation_run": {
+                        "jobs": [{"result_id": "image-result-live-001", "status": "completed"}]
+                    }
+                },
+            }
+        )
+
+        args = _offline_action_args(task, "review_generated_result")
+
+    assert args == {"product_id": "honeydew", "result_id": "image-result-live-001"}
+
+
+def test_failed_local_delivery_resumes_without_resubmitting_live_generation(tmp_path):
+    from product_creative.common import write_json
+    from product_creative.runtime.creative_tasks import continue_creative_task, start_creative_task
+    from product_creative.workspace import workspace_scope
+
+    with workspace_scope(tmp_path):
+        _create_mature_video_product(tmp_path)
+        task = start_creative_task(
+            "honeydew",
+            "帮我生成一张产品图片，产品主体和包装不能变化",
+            provider="volcengine-ark-image",
+        )
+        for step in task.plan.actions:
+            step.status = "COMPLETED"
+        review_step = next(step for step in task.plan.actions if step.action == "review_generated_result")
+        review_step.status = "FAILED"
+        task.status = "FAILED_FINAL"
+        task.current_stage = "DELIVERING"
+        task.blocked_reason = "review_generated_result failed: result id or path is required"
+        task.result_descriptors.append(
+            {
+                "type": "capability_result",
+                "action": "submit_image_generation_job",
+                "status": "succeeded",
+                "output": {
+                    "image_generation_run": {
+                        "jobs": [{"result_id": "image-result-live-001", "status": "completed"}]
+                    }
+                },
+            }
+        )
+        product_root = Path(task.artifact_path).parents[2]
+        write_json(
+            product_root / "artifacts" / "generated_images" / "image-result-live-001.json",
+            {
+                "result_id": "image-result-live-001",
+                "product_id": "honeydew",
+                "brief_type": "image",
+                "provider": "volcengine-ark-image",
+                "mode": "live",
+                "status": "completed",
+                "outputs": [],
+            },
+        )
+        write_json(Path(task.artifact_path), task.model_dump(mode="json"))
+
+        resumed = continue_creative_task("honeydew", task.task_id, "继续刚才失败的交付步骤")
+
+    submissions = [
+        item for item in resumed.result_descriptors if item.get("action") == "submit_image_generation_job"
+    ]
+    reviews = [item for item in resumed.result_descriptors if item.get("action") == "review_generated_result"]
+    assert resumed.status == "AWAITING_FEEDBACK"
+    assert len(submissions) == 1
+    assert reviews[-1]["output"]["package"]["source_result_id"] == "image-result-live-001"
 
 
 def test_mixed_mock_image_and_video_task_runs_in_dependency_order(tmp_path):

@@ -14,7 +14,12 @@ from .provider_http import get_json as _get_json, post_json as _post_json
 from .provider_io import download_video_asset as _download_video
 from .provider_paths import resolve_video_task_path as _resolve_video_task_path
 from .provider_registry import provider_entry as _provider_entry
-from .provider_response import find_first_key as _find_first_key, find_urls as _find_urls
+from .provider_response import (
+    find_first_key as _find_first_key,
+    find_urls as _find_urls,
+    redact_url_credentials as _redact_url_credentials,
+    sanitize_urls as _sanitize_urls,
+)
 
 
 __all__ = ["check_video_task_status", "import_video_result", "write_live_video_task"]
@@ -185,12 +190,14 @@ def _write_generated_video_result(
     if not _is_http_url(remote_url):
         raise ValueError("generated video result requires a provider-accessible remote URL")
 
+    persisted_remote_url = _redact_url_credentials(remote_url)
+    persisted_provider_response = _sanitize_urls(provider_response or {})
     result_id = f"video-result-{timestamp()}"
     out_dir = base / "artifacts" / "generated_videos"
     outputs: List[Dict[str, Any]] = [
         {
             "type": "video",
-            "remote_url": remote_url,
+            "remote_url": persisted_remote_url,
             "path": "",
             "mime_type": "video/mp4",
             "mock": False,
@@ -221,12 +228,12 @@ def _write_generated_video_result(
         "brief_type": "video",
         "mode": "live",
         "status": "completed",
-        "external_call_performed": False,
+        "external_call_performed": True,
         "source_payload_id": task.get("source_payload_id", ""),
         "source_brief_id": task.get("source_brief_id", ""),
-        "remote_url": remote_url,
+        "remote_url": persisted_remote_url,
         "outputs": outputs,
-        "provider_response": provider_response or {},
+        "provider_response": persisted_provider_response,
         "download_error": download_error,
         "review": {
             "requires_human_review": True,
@@ -250,7 +257,7 @@ def _write_generated_video_result(
             "remote_task_id": result["remote_task_id"],
             "provider": result["provider"],
             "status": result["status"],
-            "remote_url": remote_url,
+            "remote_url": persisted_remote_url,
             "path": outputs[0].get("path", ""),
         },
     )
@@ -300,6 +307,8 @@ def check_video_task_status(
     response_payload = _get_json(endpoint, api_key)
     urls = _find_urls(response_payload)
     result_url = urls[0] if urls else ""
+    persisted_result_url = _redact_url_credentials(result_url)
+    persisted_response_payload = _sanitize_urls(response_payload)
     provider_status = _provider_task_status(response_payload)
     normalized = _normalize_video_task_status(provider_status, result_url)
     result_bundle: Dict[str, Any] = {"result": None, "files": {}}
@@ -318,10 +327,10 @@ def check_video_task_status(
         "remote_task_id": remote_task_id,
         "provider_task_status": provider_status,
         "normalized_status": normalized,
-        "result_url": result_url,
+        "result_url": persisted_result_url,
         "result_id": (result_bundle.get("result") or {}).get("result_id", ""),
         "external_call_performed": True,
-        "provider_response": response_payload,
+        "provider_response": persisted_response_payload,
         "next_step": "Review the generated video and record feedback." if result_url else "Check the task again later or import the result URL manually.",
     }
     out_dir = base / "artifacts" / "video_task_status"
@@ -348,7 +357,7 @@ def check_video_task_status(
     task_doc["last_status_check_path"] = str(json_path.relative_to(base))
     task_doc["result"] = {
         "available": bool(status_doc["result_id"] or result_url),
-        "result_url": result_url,
+        "result_url": persisted_result_url,
         "result_id": status_doc["result_id"],
         "result_path": str(Path(result_bundle["files"]["json"]).resolve().relative_to(base)) if result_bundle.get("files", {}).get("json") else "",
     }
@@ -361,7 +370,7 @@ def check_video_task_status(
         "video_task_status_id": status_id,
         "video_task_id": status_doc["video_task_id"],
         "normalized_status": normalized,
-        "result_url": result_url,
+        "result_url": persisted_result_url,
         "result_id": status_doc["result_id"],
         "external_call_performed": True,
         "files": {"json": str(json_path), "markdown": str(md_path)},

@@ -16,42 +16,35 @@ from typing import Any, Dict, List, Tuple
 from ...brain.provenance import register_source as _register_source
 from ...common import append_jsonl, ensure_product, now_iso, product_state_path, read_json, read_product_state, slug, timestamp, update_index_and_log, write_json
 from ...ports.runtime_repositories import artifacts
+from ...provider_config import provider_api_key, provider_endpoint, provider_model
+from ...provider_registry import provider_entry as _provider_entry
 
 from .shared import _list, _rel, _text
-from .asset_service import _mime_type, _orientation, _read_image_size, _resolve_material
+from .asset_service import _is_http_url, _mime_type, _orientation, _read_image_size, _resolve_material
 
 IMAGE_ANALYSIS_SCHEMA_VERSION = "product_creative.image_analysis.v2.15"
 
 VISUAL_ALIGNMENT_SCHEMA_VERSION = "product_creative.visual_alignment.v2.16"
 
-def _registry_path() -> Path:
-    return Path(__file__).with_name("provider_registry.json")
-
 def _load_provider(name: str) -> Dict[str, Any]:
     clean_name = _text(name) or "mock-vision"
-    registry = read_json(_registry_path(), {})
-    for item in _list(registry.get("providers")):
-        if isinstance(item, dict) and item.get("name") == clean_name:
-            return item
     if clean_name == "mock-vision":
         return {"name": "mock-vision", "status": "mock"}
-    raise ValueError(f"provider '{clean_name}' is not registered")
+    return _provider_entry(clean_name)
 
-def _provider_value(provider: Dict[str, Any], key: str, env_key: str) -> str:
-    value = _text(provider.get(key))
-    if value:
-        return value
-    env_name = _text(provider.get(env_key))
-    return os.environ.get(env_name, "").strip() if env_name else ""
-
-def _post_json(endpoint: str, body: Dict[str, Any], api_key: str) -> Dict[str, Any]:
+def _post_json(
+    endpoint: str,
+    body: Dict[str, Any],
+    api_key: str,
+    timeout_seconds: int = 120,
+) -> Dict[str, Any]:
     data = json.dumps(body, ensure_ascii=False).encode("utf-8")
     headers = {"Content-Type": "application/json"}
     if api_key:
         headers["Authorization"] = f"Bearer {api_key}"
     request = urllib.request.Request(endpoint, data=data, headers=headers, method="POST")
     try:
-        with urllib.request.urlopen(request, timeout=120) as response:
+        with urllib.request.urlopen(request, timeout=max(1, int(timeout_seconds))) as response:
             raw = response.read().decode("utf-8", errors="replace")
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")
@@ -168,9 +161,9 @@ def _run_vlm_analysis(
     material: Dict[str, Any],
     product_name: str,
 ) -> Dict[str, Any]:
-    endpoint = _provider_value(provider, "endpoint", "endpoint_env")
-    model = _provider_value(provider, "model", "model_env")
-    api_key = _provider_value(provider, "api_key", "auth_env")
+    endpoint = provider_endpoint(provider)
+    model = provider_model(provider)
+    api_key = provider_api_key(provider)
     if not endpoint:
         raise RuntimeError(f"VLM provider endpoint is not configured: {provider_name}")
     if provider.get("auth_env") and not api_key:
@@ -195,7 +188,15 @@ def _run_vlm_analysis(
     }
     if defaults.get("max_output_tokens"):
         body["max_output_tokens"] = int(defaults.get("max_output_tokens"))
-    response_payload = _post_json(endpoint, body, api_key)
+    thinking = defaults.get("thinking")
+    if isinstance(thinking, dict) and thinking.get("type") in {"enabled", "disabled"}:
+        body["thinking"] = {"type": thinking["type"]}
+    response_payload = _post_json(
+        endpoint,
+        body,
+        api_key,
+        int(provider.get("request_timeout_seconds") or 120),
+    )
     output_text = _extract_response_text(response_payload)
     parsed = _parse_json_text(output_text)
     top_level_keys = sorted(response_payload.keys()) if isinstance(response_payload, dict) else []
@@ -461,8 +462,8 @@ def analyze_image_asset(product_id: str, asset: str, provider: str = "mock-visio
         "quality_flags": quality_flags,
         "risks_or_missing_understanding": risks,
         "provider_request": {
-            "endpoint": _provider_value(provider_entry, "endpoint", "endpoint_env") if not is_mock else "",
-            "model": _provider_value(provider_entry, "model", "model_env") if not is_mock else "",
+            "endpoint": provider_endpoint(provider_entry) if not is_mock else "",
+            "model": provider_model(provider_entry) if not is_mock else "",
             "image_source": vlm_call.get("image_source", ""),
             "image_url": vlm_call.get("image_url_for_record", ""),
             "prompt": vlm_call.get("prompt", ""),

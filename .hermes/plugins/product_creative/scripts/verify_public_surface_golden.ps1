@@ -23,7 +23,7 @@ payload = {
 }
 serialized = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
 actual = hashlib.sha256(serialized).hexdigest()
-expected = "c28fdea37290103416735bad59d3f69a9199c26d9cdf1bf1454656c1f2379b10"
+expected = "06050b3a79c34eaeaebff9a8019b8258ad3b525ee2fd5b56ac5206a60b3d1c9e"
 report = {
     "success": actual == expected and len(payload["tools"]) == 84 and len(payload["cli"]) == 84,
     "schema_version": "product_creative.public_surface_golden.v1",

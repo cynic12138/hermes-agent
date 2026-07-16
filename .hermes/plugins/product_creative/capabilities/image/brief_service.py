@@ -36,16 +36,35 @@ def _apply_image_intent_to_brief(brief: Dict[str, Any], image_intent: Dict[str, 
     variant = int(brief.get("source_variant") or 1)
     scene = _intent_scene(message, variant)
     style = _text((brief.get("visual") or {}).get("style")) or _text(image_intent.get("style_direction"))
-    prompt = (
-        f"为{_text((brief.get('product') or {}).get('name')) or image_intent.get('product_id')}创作妇女节商业摄影视觉。"
-        f"本次用户创意要求：{message} "
-        f"第{variant}张重点场景：{scene or '在完整创意要求内做有区别的构图'}。"
-        f"风格：{style or '现代、真实、克制、温暖'}。"
-        "必须以已登记产品参考图为包装依据，保留黄色半透明云朵/花朵外形与品牌识别；"
-        "产品仅作为未打开的桌面礼物或场景元素，不展示使用。"
-        "成年孕妇必须被尊重地呈现为有主体性的成年女性，不病态化、不幼态化。"
-        "画面不要生成广告文案或新增包装文字；不得暗示医疗、通便、营养、孕期适用或安全功效。"
+    product_name = _text((brief.get("product") or {}).get("name")) or image_intent.get("product_id")
+    background_only = any(
+        marker in message
+        for marker in (
+            "只生成背景",
+            "背景图片",
+            "背景图",
+            "不要生成或重绘产品",
+            "不生成产品",
+        )
     )
+    if background_only:
+        prompt = (
+            "创作一张可供后续精确合成商品主体的独立背景素材。"
+            f"本次用户创意要求：{message} "
+            f"第{variant}张重点场景：{scene or '遵循用户指定的背景、装饰与光影'}。"
+            f"风格：{style or '现代、真实、克制、低干扰'}。"
+            "只生成环境、桌面、背景、光影和装饰元素；不要生成或重绘产品、包装、品牌、文字、人物或使用动作。"
+            "画面中心为后续商品主体保留干净、合理的构图空间。"
+        )
+    else:
+        prompt = (
+            f"为{product_name}创作商业摄影视觉。"
+            f"本次用户创意要求：{message} "
+            f"第{variant}张重点场景：{scene or '在完整创意要求内做有区别的构图'}。"
+            f"风格：{style or '现代、真实、克制'}。"
+            "如画面出现产品，必须以已登记参考素材为包装依据，不得改变包装结构或新增文字。"
+            "不得虚构产品使用方式、医疗健康功效、认证、成分或人群适用信息。"
+        )
     target = dict(brief.get("target") or {})
     if any(marker in message for marker in ("竖版", "竖屏", "9:16")):
         target.update({
@@ -55,37 +74,52 @@ def _apply_image_intent_to_brief(brief: Dict[str, Any], image_intent: Dict[str, 
         })
     copy = dict(brief.get("copy") or {})
     copy.update({
-        "headline": "每一种女性身份，都值得被看见",
-        "subheadline": "妇女节主题视觉候选",
+        "headline": "" if background_only else _text(copy.get("headline")),
+        "subheadline": "" if background_only else _text(copy.get("subheadline")),
         "supporting_labels": [],
         "text_to_render": [],
     })
     visual = dict(brief.get("visual") or {})
     visual.update({
-        "style": style or "现代、真实、克制、温暖",
-        "composition": scene or "妇女节女性群像与产品礼物静物的竖版商业摄影构图",
+        "style": style or "现代、真实、克制、低干扰",
+        "composition": scene or (
+            "为后续商品主体预留干净中心空间的竖版背景构图"
+            if background_only
+            else "依据用户要求与产品参考素材构建竖版商业摄影构图"
+        ),
         "prompt": prompt,
-        "negative_constraints": [
-            "no product use or opened applicator",
-            "no medical, bowel, nutrition, pregnancy suitability or safety claims",
-            "no invented packaging text, certification or ingredients",
-            "no infantilized or distressed depiction of the adult pregnant woman",
-        ],
+        "negative_constraints": (
+            [
+                "no product, packaging, logo or brand text",
+                "no people, body parts or product-use action",
+                "no overlay text, medical scene or health claim",
+            ]
+            if background_only
+            else [
+                "no invented product use or packaging text",
+                "no medical, health, audience-suitability or safety claims",
+                "no invented certification or ingredients",
+            ]
+        ),
     })
     contract = dict(brief.get("generation_contract") or {})
     contract.update({
         "prompt": prompt,
-        "must_preserve": [
-            "registered yellow translucent cloud/flower product packaging identity",
-            "adult pregnant woman portrayed respectfully",
-            "Women’s Day theme: every female identity deserves to be seen",
-        ],
-        "must_not_invent": [
-            "product use",
-            "medical or functional claims",
-            "pregnancy suitability or safety claims",
-            "ingredients, certification or packaging text not visible in the reference",
-        ],
+        "must_preserve": (
+            ["background_only", "clean compositing space", style or "low-distraction scene"]
+            if background_only
+            else [product_name, "registered reference packaging identity"]
+        ),
+        "must_not_invent": (
+            ["product", "packaging", "logo", "text", "people", "product use"]
+            if background_only
+            else [
+                "product use",
+                "medical or functional claims",
+                "audience suitability or safety claims",
+                "ingredients, certification or packaging text not visible in the reference",
+            ]
+        ),
         "requires_human_review": True,
     })
     brief["target"] = target
