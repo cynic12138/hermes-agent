@@ -1,9 +1,13 @@
 # M10 产品认知驱动的自主创作智能体：实施与恢复说明
 
-> 状态：PARTIAL（实现已本地提交为 `33d096f` 并通过离线验证；未推送、未发布；真实 Provider 与平台抓取尚待用户现场验收）
+> 状态：PARTIAL（实现提交 `33d096f`；M10.1 技术 Live 门禁完成，但 2026-07-16 用户验收确认现有视频创意/包装质量未通过；当前增量未提交、未推送、未发布）
 > 日期：2026-07-15
-> 分支：`product-creative-runtime`
+> 原始实现分支：`product-creative-runtime`；当前选择性迁移分支：`product-creative-rebaseline-20260716`
 > 实现提交：`33d096fa1a4439ef7fbcc7ee9ccb653332582414`
+
+本文只作为 M10 已实现代码的恢复说明；不再代表下一阶段产品设计。当前终局架构和 M10.2/M11 路线以 `docs/PRODUCT_AGENT_DIRECTION.md` 为准。
+
+2026-07-15 的 M10.1 Live 适配、真实任务 ID、产物、哈希、安全判定和剩余阻塞另见 `docs/M10_LIVE_PROVIDER_AND_SOURCE_INTEGRATION.md`，该文档是本阶段 Live 事实来源。
 
 ## 1. 目标与非目标
 
@@ -118,7 +122,7 @@ flowchart LR
 - Hermes 收集后通过现有 external source snapshot 导入，强制 `not_product_fact=true`。
 - 来源失败可由用户明确选择“跳过实时，使用已有”，任务降级到确认的 Product Brain 和历史灵感，并记录 `used_realtime_information=false`。
 
-本轮没有执行任何真实网页、XHS、抖音或浏览器 Cookie 操作。
+M10 基线提交本身没有执行真实外部操作；后续 M10.1 已按用户授权真实执行 Web、XHS、Douyin、VLM、图片和视频。XHS 旧账号 `-104` 已通过专用 Edge 登录解决，安装版 Hermes 自然语言 E2E 产生真实 snapshot。所有 Live 事实以专题文档为准。
 
 ## 8. Provider 提交、恢复与费用安全
 
@@ -211,11 +215,11 @@ Desktop/查询：
 - `docs/MVP_SCOPE.md`
 - `docs/OPEN_QUESTIONS.md`
 
-工作区共有 32 个 M10 相关修改/新增文件。既有未跟踪 `pytest-of-unknown/` 不属于 M10，不删除、不提交。
+原始工作区共有 32 个 M10 相关修改/新增文件。既有未跟踪 `pytest-of-unknown/` 不属于 M10；本次重建没有把该目录迁入新分支。
 
 ## 12. 验证证据
 
-已执行且成功（最终复验）：
+M10 基线提交时已执行且成功：
 
 - M10 Python：24 passed；覆盖自然语言请求、Readiness、UNKNOWN、字段确认、授权、研究导入/降级、素材选择、Mock 文/图/视频、混合任务、反馈学习、workspace 隔离、Desktop read model、真实 Hermes agent loop、Fake live submit/recovery。
 - Desktop SDK Node bundle：2 passed；routes/registry/page/Product Creative UI：16 passed；backend API/distribution：15 passed；distribution bundle：1 passed。
@@ -225,15 +229,15 @@ Desktop/查询：
 - 分发版本/哈希/敏感扫描与临时 enabled user-plugin 离线安装通过。
 - `git diff --check`（仅 Windows CRLF warning）。
 
-最终命令和精确结果以 `docs/PROJECT_STATE.md` 为准。本轮明确没有运行：真实图片/视频/VLM、付费 Provider、网页/XHS/抖音抓取、生产 API。
+M10.1 XHS 已成功；最终定向回归需要在当前 worktree 再执行一次并把结果写回 Live 专题文档。真实调用证据见该专题文档。
 
 ## 13. 已知限制与未完成验收
 
-1. 用户尚未亲自验收一次新产品多轮建脑和一次真实视频交付，因此 M10 不能标记 DONE。
-2. XHS/抖音 sidecar 在仓库外，本轮只完成授权/动作请求/降级契约，没有现场验证登录、Cookie、限流和抓取结果。
-3. 真实 Provider runner 已接入现有 gateway，但未使用真实凭据/网络验证；只以 Fake Gateway 验证提交一次与可恢复轮询。
+1. 用户尚未亲自验收一次新产品多轮建脑和一次真实/包装安全视频交付，因此 M10 不能标记 DONE。
+2. XHS/抖音 sidecar 在仓库外且均已现场通过；XHS 自然语言 E2E 的深度 LLM 摘要受 `ctx.llm` 桥接限制，但 snapshot 和候选可用。
+3. 真实 Provider 已现场执行；普通 Seedance 会重绘包装，exact-main 可保持输入主图不被重绘但视觉仍是基础开发样片，并依赖外部 ffmpeg。
 4. `verify_m2_workflow_run.ps1` 在 Windows 嵌套 PowerShell 下长时间无输出，未完成；不能声称通过或失败。
-5. `pytest-of-unknown/` 是既有未跟踪测试临时目录，本轮未删除、未提交。
+5. `pytest-of-unknown/` 是原工作区既有测试临时目录，作为现场证据留在原 worktree，不进入重建分支或分发包。
 6. 完整模型配置中心、创作画布、视频时间轴不属于 M10。
 
 ## 14. 工作区丢失后的恢复顺序

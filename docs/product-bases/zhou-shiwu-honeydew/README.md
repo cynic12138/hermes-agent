@@ -35,6 +35,7 @@
 - [CLAIMS_AND_COMPLIANCE.md](CLAIMS_AND_COMPLIANCE.md)：宣称和合规门禁。
 - [ASSET_INTAKE.md](ASSET_INTAKE.md)：需要用户/公司补齐的正式资料清单。
 - [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md)：仍待确认的问题。
+- [STRICT_BASELINE.md](STRICT_BASELINE.md)：2026-07-16 全新 workspace 的 Evidence/Draft/Canonical/Proposal 实际分层结果。
 
 ## 使用规则
 

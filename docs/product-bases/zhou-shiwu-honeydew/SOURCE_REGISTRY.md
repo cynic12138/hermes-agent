@@ -15,7 +15,10 @@
 |---|---|---|---|---|---|
 | LOC-001 | 产品方向文件 | `C:\data\work file\hermers-agent for me\PRODUCT_AGENT_DIRECTION.md` | Product Brain、证据/审批、外部搜索边界、Hermes 插件定位 | ACCEPTED_EVIDENCE | 是项目方向，不是商品事实 |
 | USR-001 | 用户明确确认 | 2026-07-14 当前恢复会话 | 产品选择、交付类型、包装保真、首轮视频基线、暂不矩阵化、授权边界 | ACCEPTED_EVIDENCE | 需在正式产品资料到齐后复核商品事实 |
-| CODE-001 | 仓库代码/脚本 | `.hermes/plugins/product_creative/scripts/verify_m2_*.ps1` 等 | 证明历史测试曾使用该产品名 | ACCEPTED_EVIDENCE | 其中“饮品/补水”内容为冲突证据，不是商品事实 |
+| USR-002 | 用户明确确认 | 2026-07-15 当前开发会话 | 本次产品名称、原始产品描述、要求隔离并修正高风险健康表述、数据源与 Provider 配置 | ACCEPTED_EVIDENCE | 原始描述中的功效、人群、使用方式和安全表述只进入 Evidence/Draft，不是合规批准文案 |
+| PKG-001 | 用户确认本地素材 | `C:\data\work file\hermers-agent for me\周十五产品垫图\1.png` | 当前创作包装/主图保真基线 | ACCEPTED_EVIDENCE | 只证明本次采用的正面视觉；不证明背标、说明书、法定类别、适用人群或功效 |
+| PKG-002 | 本地辅助素材 | `C:\data\work file\hermers-agent for me\周十五产品垫图\2.jpg` | 多角度/场景辅助参考 | ACCEPTED_EVIDENCE | 不是当前主图；正式使用前仍需素材登记和授权记录 |
+| CODE-001 | 仓库历史代码/脚本 | `docs/history/product-creative-legacy/original/verification-scripts/verify_m2_*.ps1` 等 | 证明历史测试曾使用该产品名 | ACCEPTED_EVIDENCE | 其中“饮品/补水”内容为冲突证据，不是商品事实；脚本不是当前运行门禁 |
 
 ## 公开网络来源
 

@@ -1,6 +1,6 @@
-# M10 产品认知驱动的自主创作智能体：计划与实施状态
+# M10 产品认知驱动的自主创作智能体：历史计划与实施状态
 
-> 用户已于 2026-07-15 授权实施。当前状态：PARTIAL（实现已本地提交为 `33d096f`，未 push/release；Live 用户验收未完成）。实施证据见 `docs/M10_PRODUCT_COGNITION_AUTONOMOUS_CREATION_IMPLEMENTATION.md`。
+> 用户已于 2026-07-15 授权实施，基线已本地提交为 `33d096f`。2026-07-16 的真实样片证明技术链路可运行，但创意与包装质量未通过；本文不再是下一开发计划。当前方向与路线以 `docs/PRODUCT_AGENT_DIRECTION.md` 和 `docs/ROADMAP.md` 为准。
 
 ## 目标
 

@@ -18,5 +18,14 @@
 | 2026-07-15 | M10 复用单入口与能力注册表 | 保持 Hermes 窄腰并避免平行 Agent/workflow | 新聊天工具、新任务 DB、自由 LLM 工具执行 | public surface/runtime | `runtime/agent.py`；`application/planner.py`；84/84 golden | 是 |
 | 2026-07-15 | 外部副作用采用任务授权，Brain 写回独立确认 | 费用/Cookie/数据源授权只对当前任务有效；长期认知风险更高 | 一次授权同时允许抓取、付费和 Brain 写回 | authorization/provider/learning | `runtime/authorization.py`；M10 authorization/learning tests | 是 |
 | 2026-07-15 | Live Provider 双重 opt-in | 防止仅有授权记录就从开发/恢复环境发起真实调用 | 授权后自动打开 Provider | provider safety/recovery | `runtime/creative_tasks.py`；Fake Gateway test | 是 |
+| 2026-07-16 | Product Brain 从“整体大脑”重新定位为产品真实性与长期认知底座 | 真实样片证明懂产品不等于会选题、会制作或会质检 | 继续只扩充 Product Brain | 产品定义、认知架构、Roadmap | 用户产品讨论；`docs/PRODUCT_AGENT_DIRECTION.md` | 是 |
+| 2026-07-16 | 采用专业工作流 + Skills/Capabilities/Gates，而非无边界多 Agent 群 | 多个自由 Agent 会放大上下文漂移、错误、成本和不可恢复性 | “灵感大师/编剧大师/卡审大师”自由互聊 | runtime、skills、workflow、测试 | 用户确认；`docs/PRODUCT_AGENT_DIRECTION.md` | 是 |
+| 2026-07-16 | 生成文件不等于创作完成 | exact-main 样片只有通用字幕，Seedance 样片包装文字乱码；技术链路通过但产品质量失败 | 只做 Provider 连通与结果下载验收 | Creative Gate、Production Bible、QA、Roadmap | M10.1 真实结果与用户反馈；`docs/M10_LIVE_PROVIDER_AND_SOURCE_INTEGRATION.md` | 是 |
+| 2026-07-16 | 早期核心指标为可发布内容/运营投入，而非原始生成量 | 大量不可用视频不能降低业务成本 | 直接追求每日上千条生成 | 产品指标、批量阶段顺序 | 用户产品讨论；`docs/PRODUCT_AGENT_DIRECTION.md` | 是 |
+| 2026-07-16 | 第一阶段学习由通过/修改/拒绝及原因驱动，发布表现仅手动选填 | 先建立内部质量标准，避免少量平台数据误导长期学习 | 自动投放与效果分析 | feedback、learning、Desktop | 用户确认；`docs/PRODUCT_AGENT_DIRECTION.md` | 是 |
+| 2026-07-16 | 产品稳定前采用方案 1，同仓开发、稳定后拆分 | 当前契约、workflow 和 Desktop 边界仍在快速变化；立即拆仓会叠加依赖、测试、发布和双仓调试成本 | 立即把独立仓库改为源码真源 | repository、CI、release、handoff | 用户明确选择；`docs/REBASELINE_AND_CLEANUP_20260716.md`；M11 plan | 是 |
+| 2026-07-16 | 从干净 Git 基线选择性迁移，不在原脏工作区继续叠加 | 需要保留真实调用证据，同时避免临时数据和未验证修改进入新基线 | 清理原工作区后继续、整包复制脏目录 | recovery、testing、Git | archive SHA-256、RED→GREEN 结果、rebaseline branch | 是 |
+| 2026-07-16 | 周十五初始化采用证据优先严格基线 | 用户原始描述含高风险健康与适用人群表述；外部/模型信息不能自动成为事实 | 把用户描述和网页资料直接预填 Canonical Brain | Product Brain、compliance、readiness | `docs/product-bases/zhou-shiwu-honeydew/STRICT_BASELINE.md` | 是 |
+| 2026-07-16 | M0–M8 历史移出插件发行包但保留 Git 历史 | 历史过程对恢复有价值，但旧脚本和规划会增加分发体积并误导当前开发 | 删除历史、继续随插件发布 | distribution、recovery、documentation | `git mv`；`docs/history/product-creative-legacy/README.md` | 是 |
 
 无法确认来源或理由的历史选择未写成确定事实。

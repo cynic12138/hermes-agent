@@ -7,11 +7,29 @@
 | 字段 | 当前值 | 状态 | 证据 | 备注 |
 |---|---|---|---|---|
 | 品牌/产品家族名称 | 周十五蜂蜜露 | CONFIRMED | USR-001、WEB-001 | 可作为检索和工作区名称 |
+| 本次产品名称 | 周十五益生菌蜂蜜露 | CONFIRMED | USR-002、用户确认的 `1.png` | 可用于本次工作区定位；仍需公司正式 SKU 名称核验 |
 | 产品用途类别 | 多个公开页面指向“外用蜂蜜露” | INFERRED | WEB-004、WEB-005、WEB-006、WEB-008 | 必须由当前包装/说明书确认 |
 | 饮品属性 | 否定候选：不应按饮品建模 | CONFLICTED | CODE-001 对比 WEB-004/005/006 | 在正式资料到齐前，至少禁止“饮用、补水、口感、第一口”等表达 |
 | 当前在售 SKU | 成人蜂蜜露、益生菌款、花朵益生菌款等分类 | INFERRED | WEB-001 | 这是店铺分类，不等于完整 SKU 清单 |
-| 首个验证 SKU | 未确定 | UNKNOWN | — | 必须选择一个具体包装版本后才能进入真实生成 |
-| 最新包装 | 未确定 | UNKNOWN | WEB-001、WEB-002、WEB-003、WEB-004 | 公开页面存在多个包装和规格版本 |
+| 首个验证 SKU | 用户确认的 `1.png` 所示益生菌蜂蜜露包装 | CONFIRMED | USR-002、PKG-001 | 作为本次创作保真基线；规格和法定名称仍需背标/说明书核验 |
+| 当前创作包装 | `周十五产品垫图\1.png` | CONFIRMED | PKG-001 | 用户于 2026-07-15 明确确认；不得据此推断背标、适用人群或功效 |
+
+## 用户原始描述的隔离状态
+
+用户提供了“外用通便、孕妇和便秘群体、快速有效通便、温和不刺激、肛门给入、蜂蜜和益生菌、安全有效、便携”等描述，并明确要求修正其中的高风险健康表述。当前处理如下：
+
+| 描述项 | 当前状态 | 当前用途 |
+|---|---|---|
+| 外用产品 | INFERRED | 可作为待核对的 Draft Understanding；需包装背标/说明书确认 |
+| 具体使用方法 | UNKNOWN | 禁止生成操作演示或指导，直至说明书和公司口径确认 |
+| 蜂蜜、益生菌等成分 | UNKNOWN | 不作为正式成分或功效依据，直至背标/说明书确认 |
+| 孕妇、便秘群体等适用人群 | UNKNOWN | 禁止对外生成适用承诺 |
+| “快速有效通便” | UNKNOWN / HIGH_RISK | 禁止生成；需要公司合规批准的可用原句和证据 |
+| “温和不刺激” | UNKNOWN / HIGH_RISK | 禁止生成；不得改写为安全保证 |
+| “安全有效” | UNKNOWN / HIGH_RISK | 禁止生成；属于绝对化安全/效果承诺 |
+| 可爱、不尴尬、便于携带 | INFERRED | 仅可作为视觉/体验方向候选；应避免羞辱或医疗效果暗示 |
+
+以上内容只保留在 Evidence Inbox / Draft Understanding；不得自动写入 Canonical Product Brain。
 
 ## 候选市场表达
 
@@ -55,9 +73,9 @@
 
 主要证据位置：
 
-- `.hermes/plugins/product_creative/scripts/verify_m2_conversation_workflow.ps1:54`
-- `.hermes/plugins/product_creative/scripts/verify_m2_video_brief_review.ps1:46`
-- `.hermes/plugins/product_creative/scripts/verify_m2_workflow_run.ps1:61`
-- `.hermes/plugins/product_creative/docs/M6_ASSET_HOSTING_AND_EXTERNAL_INSPIRATION_ARCHITECTURE.md:736`
+- `docs/history/product-creative-legacy/original/verification-scripts/verify_m2_conversation_workflow.ps1:54`
+- `docs/history/product-creative-legacy/original/verification-scripts/verify_m2_video_brief_review.ps1:46`
+- `docs/history/product-creative-legacy/original/verification-scripts/verify_m2_workflow_run.ps1:61`
+- `docs/history/product-creative-legacy/original/plugin-docs/M6_ASSET_HOSTING_AND_EXTERNAL_INSPIRATION_ARCHITECTURE.md:736`
 
-本轮只记录冲突，不修改脚本和业务代码。
+这些脚本已归档为历史证据，不是当前验证入口；本轮只记录冲突，不把示例内容写入真实 Product Brain。

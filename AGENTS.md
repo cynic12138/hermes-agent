@@ -4,11 +4,12 @@
 
 ## Goal and current boundary
 
-- 目标：在 Hermes 上维护长期 Product Brain，编排产品文案/图片/视频工作流，并把反馈经人工确认安全沉淀为下一轮生成上下文。
+- 目标：把优秀运营人员的产品理解、灵感研究、创意决策、分镜制作、模型调用、质量筛选和反馈复盘，沉淀为围绕具体产品长期工作的专业 AI 创意生产系统。
 - 已提交基线：M9.1 通用 Desktop Plugin SDK + plugin-owned UI（实现提交 `83b4e8f`），尚未 push/release。
-- 当前基线：M10 产品认知驱动的自主创作闭环已本地提交为 `33d096f`；Live Provider/sidecar 和用户验收未完成，状态为 PARTIAL，尚未 push/release。
-- 当前 MVP：自然语言建/续 Creative Task，任务级 Readiness 与追问，授权研究/生成，Desktop 审阅/确认/恢复；真实 provider 双重 opt-in。
-- 暂不做：新 provider/抓取器、Theme Brain、GEO/自动发帖、矩阵/投放闭环、完整工作台、云/多租户扩展，除非用户批准。
+- 当前重建分支：`product-creative-rebaseline-20260716`，基础 HEAD `d7d6ec0bf5a4ae9a1bc2377db668ed07a8a87c0b`。原 `product-creative-runtime` 脏工作区只作受保护证据，不再作为开发基线。
+- 当前基线：M10.1 Live 能力已选择性迁移并通过定向测试；周十五产品已建立严格证据优先 workspace。技术链路可运行，但现有样片的创意质量与包装生成质量不合格，不能记为产品完成。
+- 当前 MVP：M11 专业创意工作流与质量门禁。真实生成前必须存在有效 Creative Decision、剧情/分镜和 Production Bible；生成后质量闭环在 M14 完成。
+- 暂不做：Theme Brain、GEO/自动发帖、自动投流/效果分析、无边界多 Agent 群、完整创作画布、云/多租户扩展，除非用户批准。
 
 ## Key paths and stack
 
@@ -31,9 +32,14 @@ npm.cmd --prefix apps/desktop run build
 ## Non-negotiable boundaries
 
 - Product Creative 留在插件；宿主只增加通用插件能力，不添加产品专属 core 分支。
+- 产品稳定前采用方案 1：内层插件是唯一源码真源，独立 `hermes-product-creative` 仓库仅由发布流程生成；满足拆仓门槛后再单独迁移。
 - Product Brain 写回、付费 provider、外部发布、核心素材变更必须确认。
 - 外部信息只能进入 evidence/inspiration/proposal；未确认不得成为 Canonical Product Brain。任务授权永不包含 Brain 写回。
+- Product Brain 是产品真实性和长期认知底座，不等于完整创作能力；Creative Director、Production Engine、Evaluator & Learning 必须分别有可验证产物和门禁。
+- 不得在 `selected_idea` 为空、剧情/分镜无效或 Production Bible 缺失时调用真实生成；不得把硬编码通用字幕模板当作剧情视频交付。
 - real provider 还必须显式设置 `PRODUCT_CREATIVE_ENABLE_REAL_PROVIDER=1`；测试与普通开发环境保持关闭。
+- 豆包凭据最高优先读取 `DOUBAO_API_KEY`；硅基流动和 DeepSeek 分别读取 `SILICONFLOW_API_KEY`、`DEEPSEEK_API_KEY`。只记录变量名，禁止输出值。
+- 包装要求不得重绘/保持原始像素时必须走 exact-main 路线；生成式视频只能作为非保真路线，不能以提示词承诺逐像素包装保真。
 - SQLite 是 durable runtime 真源；媒体/可审阅 artifact 位于 workspace 文件系统。
 - 不输出或提交 API key、token、Cookie、个人数据、workspace DB/artifact。
 - 不清理或覆盖当前脏工作区；始终区分 HEAD 与 worktree。
@@ -42,11 +48,11 @@ npm.cmd --prefix apps/desktop run build
 
 ## Done means
 
-任务必须有范围判定、复用检查、相关测试/构建、无外部副作用证明、状态文档更新；跨 Desktop/plugin/backend 还需隔离 workspace E2E。未经用户确认不提交、不推送。
+任务必须有范围判定、复用检查、相关测试/构建、无外部副作用证明、状态文档更新；创作任务还必须验证中间产物、质量 Gate 和真实自然语言 E2E。跨 Desktop/plugin/backend 还需隔离 workspace E2E。未经用户确认不提交、不推送。
 
 ## Fast handoff index
 
-依次读取：`AGENTS.md`、`docs/AI_HANDOFF.md`、`docs/PROJECT_STATE.md`、`docs/MVP_SCOPE.md`、`docs/ARCHITECTURE_CURRENT.md`。M10 开发/恢复必须再读 `docs/M10_PRODUCT_COGNITION_AUTONOMOUS_CREATION_IMPLEMENTATION.md` 和 `docs/plans/2026-07-14-m10-zero-to-product-brain-plan.md`；Desktop SDK/分发再读 `docs/M9_1_DESKTOP_PLUGIN_SDK_IMPLEMENTATION.md`。
+依次读取：`AGENTS.md`、`docs/PRODUCT_AGENT_DIRECTION.md`、`docs/AI_HANDOFF.md`、`docs/PROJECT_STATE.md`、`docs/MVP_SCOPE.md`、`docs/ARCHITECTURE_CURRENT.md`。本次重建再读 `docs/REBASELINE_AND_CLEANUP_20260716.md`；M0–M8 回顾读 `docs/history/product-creative-legacy/README.md`；周十五严格基线读 `docs/product-bases/zhou-shiwu-honeydew/STRICT_BASELINE.md`；下一实施入口是 `docs/plans/2026-07-16-m11-professional-creative-workflow-plan.md`。
 
 ---
 

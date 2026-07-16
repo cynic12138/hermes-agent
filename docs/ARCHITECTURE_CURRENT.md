@@ -1,9 +1,13 @@
 # Architecture Current
 
-- 日期：2026-07-15
+- 日期：2026-07-16
 - 状态：as-is recovery；不是未来设计
 - M9.1 实现基线：`83b4e8f`
-- M10 工作区基线 HEAD：`8ba592cdca0e835580771795cafea424e3618e0d`（实现未提交）
+- 重建分支：`product-creative-rebaseline-20260716`
+- 重建基础 HEAD：`d7d6ec0bf5a4ae9a1bc2377db668ed07a8a87c0b`
+- M10.1 Live 增量已选择性迁移，待最终验证和本地提交
+
+目标架构、专业创意工作流和从当前状态到 Final 1.0 的路线以 `docs/PRODUCT_AGENT_DIRECTION.md` 为准。本文只描述当前代码事实。
 
 ## 当前架构
 
@@ -33,6 +37,14 @@ flowchart TB
 - Python 3.11–3.13、Pydantic、FastAPI/Starlette；SQLite + workspace 文件系统。
 - Electron、React、TypeScript、Vite/Vitest；exact-main-video 依赖 Pillow/ffmpeg。
 - `capabilities/`：领域能力；`application/`：CommandBus/policy；`runtime/`/`durable_workflow/`：状态机；`contracts/`/`ports/`：边界；`infrastructure/sqlite/`：durable state；`dashboard/plugin_api.py`：HTTP API。
+- M0–M8 历史文档和阶段脚本位于 `docs/history/product-creative-legacy/`，不再进入插件分发包。
+
+## 源码与拆仓状态
+
+- 当前采用方案 1：`.hermes/plugins/product_creative/` 是唯一业务源码真源。
+- 独立 `hermes-product-creative` 仓库是发布流程生成的分发仓库，不接受双向业务修改。
+- Product Creative 公开契约、独立安装和兼容矩阵稳定后，再通过专门里程碑拆分源码。
+- 原 `product-creative-runtime` 脏 worktree 是恢复证据；当前开发只在 `product-creative-rebaseline-20260716` 进行。
 
 ## 核心调用链
 
@@ -45,6 +57,8 @@ flowchart TB
 - `runtime/authorization.py`：数据源/Cookie/图片/视频次数和有效期；不包含 Brain 写回。
 - `application/planner.py`：从现有 capability registry 生成最多 24 步的跨域计划。
 - `dashboard/plugin_api.py` + plugin-owned UI：只读 task 查询和五视图展示。
+
+当前产品质量缺口：Goal Planner 仍以静态动作串为主，`selected_idea` 可能为空；exact-main 路线使用硬编码通用字幕；普通 Seedance 路线会重绘包装文字；Review 主要形成可审阅包，尚未成为自动媒体 QA 和返修 Gate。因此当前架构是技术底座，不是成熟创意工作室。
 
 认知层为 Evidence Inbox → Draft Understanding → Canonical Product Brain，Task Context 与三者分离。外部 snapshot 标记 `not_product_fact`；字段/学习 proposal 经确认后才创建新 Brain 版本。
 
