@@ -106,10 +106,10 @@ import { closeActiveTerminal } from './right-sidebar/terminal/terminals'
 import {
   CRON_ROUTE,
   NEW_CHAT_ROUTE,
+  primaryRouteSurfaceForPath,
   routeSessionId,
   sessionRoute,
-  SETTINGS_ROUTE,
-  shouldDeferUnknownRouteForDesktopPlugins
+  SETTINGS_ROUTE
 } from './routes'
 import { SessionPickerOverlay } from './session-picker-overlay'
 import { SessionSwitcher } from './session-switcher'
@@ -157,11 +157,12 @@ export function DesktopController() {
   const navigate = useNavigate()
   const desktopPlugins = useDesktopPlugins()
   const desktopPlugin = desktopPluginForPath(location.pathname)
-  const discoveringDesktopPlugin = shouldDeferUnknownRouteForDesktopPlugins(
+  const primaryRouteSurface = primaryRouteSurfaceForPath(
     location.pathname,
     desktopPlugins.loading,
     Boolean(desktopPlugin)
   )
+  const discoveringDesktopPlugin = primaryRouteSurface === 'loading'
 
   const busyRef = useRef(false)
   const creatingSessionRef = useRef(false)
@@ -1050,6 +1051,21 @@ export function DesktopController() {
     />
   )
 
+  const primaryRouteElement =
+    primaryRouteSurface === 'desktop-plugin' && desktopPlugin ? (
+      <DesktopPluginPage
+        error={desktopPlugins.errors[desktopPlugin.name]}
+        manifest={desktopPlugin}
+        status={desktopPlugins.statuses[desktopPlugin.name] || 'loading'}
+      />
+    ) : primaryRouteSurface === 'loading' ? (
+      <div className="flex h-full items-center justify-center p-6 text-sm" role="status">
+        Loading Desktop plugins…
+      </div>
+    ) : (
+      chatView
+    )
+
   // Flipped layout mirrors the default: sessions sidebar → right, file
   // browser + preview rail → left. Same panes, swapped sides.
   const sidebarSide = panesFlipped ? 'right' : 'left'
@@ -1196,7 +1212,7 @@ export function DesktopController() {
       <PaneMain>
         <Routes>
           <Route element={chatView} index />
-          <Route element={chatView} path=":sessionId" />
+          <Route element={primaryRouteElement} path=":sessionId" />
           <Route
             element={
               <Suspense fallback={null}>
@@ -1231,19 +1247,7 @@ export function DesktopController() {
           <Route element={<LegacySessionRedirect />} path="sessions/:sessionId" />
           <Route
             element={
-              desktopPlugin ? (
-                <DesktopPluginPage
-                  error={desktopPlugins.errors[desktopPlugin.name]}
-                  manifest={desktopPlugin}
-                  status={desktopPlugins.statuses[desktopPlugin.name] || 'loading'}
-                />
-              ) : discoveringDesktopPlugin ? (
-                <div className="flex h-full items-center justify-center p-6 text-sm" role="status">
-                  Loading Desktop plugins…
-                </div>
-              ) : (
-                <Navigate replace to={NEW_CHAT_ROUTE} />
-              )
+              primaryRouteSurface === 'chat' ? <Navigate replace to={NEW_CHAT_ROUTE} /> : primaryRouteElement
             }
             path="*"
           />

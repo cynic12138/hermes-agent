@@ -4,6 +4,7 @@ import {
   APP_ROUTES,
   appViewForPath,
   isReservedAppPath,
+  primaryRouteSurfaceForPath,
   routeSessionId,
   setDesktopPluginPaths,
   shouldDeferUnknownRouteForDesktopPlugins
@@ -27,13 +28,16 @@ describe('Desktop host routes', () => {
 
     expect(routeSessionId('/product-creative')).toBeNull()
     expect(appViewForPath('/product-creative')).toBe('desktop-plugin')
+    expect(primaryRouteSurfaceForPath('/product-creative', false, true)).toBe('desktop-plugin')
     expect(routeSessionId('/ordinary-session')).toBe('ordinary-session')
   })
 
   it('defers an unknown cold-start path until plugin discovery completes', () => {
     expect(shouldDeferUnknownRouteForDesktopPlugins('/example-plugin', true, false)).toBe(true)
+    expect(primaryRouteSurfaceForPath('/example-plugin', true, false)).toBe('loading')
     expect(shouldDeferUnknownRouteForDesktopPlugins('/settings', true, false)).toBe(false)
     expect(shouldDeferUnknownRouteForDesktopPlugins('/example-plugin', true, true)).toBe(false)
     expect(shouldDeferUnknownRouteForDesktopPlugins('/ordinary-session', false, false)).toBe(false)
+    expect(primaryRouteSurfaceForPath('/ordinary-session', false, false)).toBe('chat')
   })
 })

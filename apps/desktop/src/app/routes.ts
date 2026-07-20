@@ -81,6 +81,20 @@ export function shouldDeferUnknownRouteForDesktopPlugins(
   return loading && !pluginDiscovered && !isReservedAppPath(pathname)
 }
 
+export type PrimaryRouteSurface = 'chat' | 'desktop-plugin' | 'loading'
+
+export function primaryRouteSurfaceForPath(
+  pathname: string,
+  loading: boolean,
+  pluginDiscovered: boolean
+): PrimaryRouteSurface {
+  if (pluginDiscovered) {
+    return 'desktop-plugin'
+  }
+
+  return shouldDeferUnknownRouteForDesktopPlugins(pathname, loading, pluginDiscovered) ? 'loading' : 'chat'
+}
+
 // Views that render as a full-screen modal card (OverlayView) over the shell.
 // While one is open the app's titlebar control clusters must hide so they don't
 // bleed over the overlay (they sit at a higher z-index than the overlay card).
