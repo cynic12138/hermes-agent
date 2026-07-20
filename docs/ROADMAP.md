@@ -184,7 +184,9 @@ M12 尚未 commit、push、tag 或 release。
 剩余完成门禁：
 
 - 方案 A 已完成：实现提交 `25e26df` 已推送到可获取的 origin pilot ref。
-- 重新构建并验证 install stamp 和 fresh-install；不得把只含 Desktop 壳且指向旧 HEAD 的 EXE 称为 M15 独立安装包。
+- install stamp 和 NSIS 重建已完成：固定到 `5e87c865c7fe105374300042c73d1cb1dd4ad746`，`dirty=false`。
+- 隔离 fresh-install 首次引导因 `raw.githubusercontent.com` DNS 解析失败而停止；网络恢复后原样
+  复验 runtime 获取、Product Creative user-plugin 发现和 backend → bundle → route → API 全链。
 - 一名内部运营人员在可复现安装形态中完成 onboarding → 自然语言任务 → 三节点审阅 → 中断恢复 → 反馈/学习全链。
 - 由产品/内容负责人记录可发布质量 Rubric 和接受/修改结论。
 - 证据与操作脚本：`docs/M15_DESKTOP_INTERNAL_PILOT_IMPLEMENTATION.md`。

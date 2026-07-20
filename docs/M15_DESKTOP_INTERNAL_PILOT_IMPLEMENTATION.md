@@ -4,9 +4,9 @@
 
 - 初始实施：2026-07-17；方案 A 收口：2026-07-20（Asia/Shanghai）
 - 分支：`product-creative-rebaseline-20260716`
-- M11–M15 实现与测试提交：`25e26df`
+- M11–M15 实现与测试提交：`25e26df`；长期状态文档提交：`5e87c86`
 - 插件版本：`9.1.0-alpha.1`
-- 状态：`PILOT_REF_AVAILABLE / INSTALLER_REBUILD_AND_FRESH_INSTALL_PENDING / UNPUBLISHED / INTERNAL_OPERATOR_ACCEPTANCE_PENDING`
+- 状态：`PILOT_REF_AVAILABLE / INSTALLER_REBUILT / FRESH_INSTALL_NETWORK_BLOCKED / UNPUBLISHED / INTERNAL_OPERATOR_ACCEPTANCE_PENDING`
 - 源码真源：`.hermes/plugins/product_creative/`
 - 外部分发仓库仍是生成目标，不是业务源码真源。
 
@@ -129,12 +129,17 @@ Desktop task composer
 - 分发 payload SHA-256：`155dbe5021b7af2f89edcf3349444528c690f9dbcf42f5df291c9d66af0eba9d`
 - 分发 source commit：`0aa95637213f02eca2ef8f619daaf771150a7e11`（dirty worktree，不能用于正式发布）
 - Windows Desktop 壳构建产物：`apps/desktop/release/Hermes-0.17.0-win-x64.exe`
-- 安装器大小：117,616,771 bytes
-- 安装器 SHA-256：`67CE6EC7F3B617D2B6BFEE6E33AC1F4988444512578855F62B97FDB9F915A38C`
+- 2026-07-20 重建安装器大小：117,616,734 bytes
+- 2026-07-20 重建安装器 SHA-256：`AC759A1EEFC3F555E58F75209D4DF1169270688525231592F307A093F8998F56`
+- install stamp commit：`5e87c865c7fe105374300042c73d1cb1dd4ad746`
+- install stamp：branch `product-creative-rebaseline-20260716`、`dirty=false`、source `local`
 
 该文件复用现有 Hermes Desktop Electron/NSIS 薄安装管线。第一次受限构建因不能创建 `%LOCALAPPDATA%\electron-builder` 缓存而失败；取得本机缓存写权限后成功。cleanup 修复后又重新构建并重新计算上述哈希，避免交付旧 renderer。
 
-重要边界：现有 NSIS 主要打包 Desktop 壳，首次启动按 install stamp 获取 Hermes runtime。旧产物仍指向 `0aa95637213f`，因此不能交付。方案 A 已把包含 M15 的实现提交 `25e26df` 推送到 origin pilot ref；必须在最终文档提交后重建 stamp 并完成 fresh-install，才能关闭该门禁。
+重要边界：现有 NSIS 主要打包 Desktop 壳，首次启动按 install stamp 获取 Hermes runtime。方案 A
+已把实现提交 `25e26df` 和文档提交 `5e87c86` 推送到 origin pilot ref，并完成新 stamp/NSIS 构建。
+但 fresh-install 仍必须实际下载固定 runtime、发现已启用 Product Creative user plugin 并启动 backend，
+仅有干净 stamp 和安装器文件不能关闭该门禁。
 
 ## 8. 实际验证
 
@@ -208,10 +213,13 @@ Desktop task composer
 
 ## 10. 已知限制与未完成门禁
 
-- **Installer rebuild gate：**可获取 pilot ref 已建立，但旧薄安装器 stamp 尚未重建；必须验证最终 stamp、远端 commit 可获取和隔离 fresh-install。
+- **Fresh-install gate：**可获取 pilot ref、新 stamp 和 NSIS 已建立；隔离首次启动于
+  `2026-07-20T02:13:01Z`、`02:13:18Z` 和 `02:15:04Z` 三次均因
+  `getaddrinfo ENOENT raw.githubusercontent.com` 停止。未采用代理、镜像或手工拷贝绕过，网络恢复后需原样复验。
 - **Operator acceptance gate：**内部运营人员尚未在可运行的 Desktop 形态中亲自完成一次 onboarding → 自然语言任务 → 审阅 → 恢复 → 反馈全链，因此 M15 不能标记为最终 DONE。
-- 未自动执行 `test:desktop:fresh/existing`：fresh 可能触发薄安装器联网下载，existing 会读取并
-  使用用户真实 Hermes 配置；这两项必须在用户知情参与下进行。
+- 已在用户授权下执行 `test:desktop:fresh`；启动器本身退出成功，但应用日志显示 bootstrap DNS
+  失败，因此不得记为 fresh-install 通过。`test:desktop:existing` 仍未执行，因为它会读取并使用
+  用户真实 Hermes 配置，需在人工试用时单独确认。
 - M14 动态真实 Provider Live Gate 仍独立 pending；M15 UI 通过不能替代真实样片质量。
 - 主图上传复用 Hermes chat attachment，不是 Product Creative 页内文件选择器。
 - Settings 只诊断，不代替 Hermes 通用模型/凭据配置。

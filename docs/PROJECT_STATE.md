@@ -2,7 +2,7 @@
 
 - 日期：2026-07-20
 - 分支：`product-creative-rebaseline-20260716`
-- M11–M15 实现与测试提交：`25e26df`；进入项目时运行 `git rev-parse HEAD` 重新确认当前文档提交
+- M11–M15 实现与测试提交：`25e26df`；长期状态文档提交：`5e87c86`；进入项目时运行 `git rev-parse HEAD` 重新确认当前提交
 - M9.1 实现提交：`83b4e8f`
 - M10 实现提交：`33d096f`
 - 已提交阶段：M9.1 Desktop Plugin SDK 迁移（DONE、本地已提交）
@@ -130,7 +130,9 @@
 - M15 已完成无产品 onboarding、Evidence/Draft 安全摄入、自然语言任务入口、无 task ID
   恢复、三运营审阅节点、Settings 安全诊断、workspace/zh-CN/cleanup 隔离、插件分发和 NSIS
   Desktop 壳构建。本地“打包壳 + 当前 worktree runtime + 隔离 user plugin”后端试运行通过；
-  包含 M15 的 origin pilot ref 已可获取；旧薄安装器 stamp 仍指向 `0aa9563`，尚需重建和 fresh-install 验证。
+  包含 M15 的 origin pilot ref 已可获取；薄安装器已重建，install stamp 干净地固定到远端可获取提交
+  `5e87c865c7fe105374300042c73d1cb1dd4ad746`。隔离 fresh-install 已启动，但首次引导因本机
+  DNS 无法解析 `raw.githubusercontent.com` 而停止，尚未完成 runtime 下载和插件发现验证。
 - M15 定向证据：backend `6 passed`；Product Creative bundle `11 passed`；Desktop
   routes/registry/page/Product Creative `22 passed`；bundle security `2 passed`；分发 bundle
   `1 passed`；M10–M15/来源/分发组合 `207 passed`；typecheck/build、分发扫描、离线安装
@@ -140,7 +142,7 @@
 
 ## PLANNED
 
-- M15 installer rebuild/fresh-install、人工运营试用和 M16 母创意受控规模化。完整路线见 `docs/PRODUCT_AGENT_DIRECTION.md`。
+- M15 fresh-install 网络复验、人工运营试用和 M16 母创意受控规模化。完整路线见 `docs/PRODUCT_AGENT_DIRECTION.md`。
 - M15 人工 Gate 通过前不进入 M16；M14 真实动态样片 Gate 继续独立完成，不扩展新 Provider 或批量生产。
 
 ## BLOCKED
@@ -150,7 +152,8 @@
 - M13 已进入 origin pilot ref，状态为 `DONE_IN_PILOT_REF_UNPUBLISHED_LIVE_GATE_PENDING`。
 - M14 已标记
   `DONE_IN_PILOT_REF_UNPUBLISHED_LIVE_GATE_AND_USER_ACCEPTANCE_PENDING`。
-- M15 功能、插件分发和本地打包组合试运行已进入 pilot ref；新 stamp 安装器与内部运营人工全链均未完成。
+- M15 功能、插件分发和本地打包组合试运行已进入 pilot ref；新 stamp 安装器构建完成，但隔离
+  fresh-install 被 `raw.githubusercontent.com` DNS 解析失败阻塞，内部运营人工全链也尚未完成。
 - 正式可发布产品视频仍被 M13/M14 联合真实 Provider/VLM Live Gate 和用户质量验收阻塞。
 
 ## DEPRECATED
@@ -213,9 +216,11 @@
 
 ## 下一步推荐
 
-方案 A 已执行：包含 M15 runtime 的 origin pilot ref 已可获取。下一步重建 Desktop/NSIS，
-核验 install stamp 指向最终 pilot HEAD，并在全新隔离 `HERMES_HOME`/workspace/user-data 下
-完成 fresh-install。随后由一名内部运营人员按
+方案 A 已执行：包含 M15 runtime 的 origin pilot ref 已可获取，Desktop/NSIS 已重建，install stamp
+固定到提交 `5e87c865c7fe105374300042c73d1cb1dd4ad746`，安装器 SHA-256 为
+`AC759A1EEFC3F555E58F75209D4DF1169270688525231592F307A093F8998F56`。下一步在
+`raw.githubusercontent.com` DNS 恢复后，从全新隔离 `HERMES_HOME`/workspace/user-data 原样重跑
+fresh-install；不得切换镜像或跳过固定提交校验。随后由一名内部运营人员按
 `docs/M15_DESKTOP_INTERNAL_PILOT_IMPLEMENTATION.md` 的脚本完成 onboarding、自然语言任务、
 三节点审阅、中断恢复和反馈学习，并由产品/内容负责人记录接受或修改结论。
 
