@@ -21,7 +21,8 @@
   仍缺真实 QA PASS 和返修后生成；M15 仅剩内部运营全链试用和正式 user-data 隔离确认。M14 执行与恢复真源为
   `docs/M14_LIVE_GATE_20260717.md`，M15 实施与人工脚本真源为
   `docs/M15_DESKTOP_INTERNAL_PILOT_IMPLEMENTATION.md`；打包验收证据为
-  `docs/M15_PACKAGED_SEED_PLUGIN_ACCEPTANCE_20260720.md`。
+  `docs/M15_PACKAGED_SEED_PLUGIN_ACCEPTANCE_20260720.md`；fresh-install 宿主数据隔离修复与零变化证据为
+  `docs/M15_FRESH_INSTALL_USER_DATA_ISOLATION_20260720.md`。
 - 暂不做：Theme Brain、GEO/自动发帖、自动投流/效果分析、无边界多 Agent 群、完整创作画布、云/多租户扩展，除非用户批准。
 
 ## Key paths and stack
@@ -68,7 +69,7 @@ npm.cmd --prefix apps/desktop run build
 
 ## Fast handoff index
 
-依次读取：`AGENTS.md`、`docs/PRODUCT_AGENT_DIRECTION.md`、`docs/AI_HANDOFF.md`、`docs/PROJECT_STATE.md`、`docs/MVP_SCOPE.md`、`docs/ARCHITECTURE_CURRENT.md`。本次重建再读 `docs/REBASELINE_AND_CLEANUP_20260716.md`；M0–M8 回顾读 `docs/history/product-creative-legacy/README.md`；周十五严格基线读 `docs/product-bases/zhou-shiwu-honeydew/STRICT_BASELINE.md`；M11 实现读 `docs/M11_PROFESSIONAL_CREATIVE_WORKFLOW_IMPLEMENTATION.md`，用户验收证据读 `docs/reviews/M11_ZHOU_SHIWU_CREATIVE_PACK_REVIEW.md`；M12 实现与恢复读 `docs/M12_PROFESSIONAL_BUSINESS_SKILLS_IMPLEMENTATION.md`；M13 媒体生产读 `docs/M13_RELIABLE_MEDIA_PRODUCTION_IMPLEMENTATION.md`；M13.1 动态镜头、冻结与动作门禁读 `docs/M13_1_DYNAMIC_SHOT_PRODUCTION_IMPLEMENTATION.md`；M14 QA 读 `docs/M14_AUTOMATIC_MEDIA_QA_REPAIR_IMPLEMENTATION.md`，真实执行和中断恢复读 `docs/M14_LIVE_GATE_20260717.md`；M15 Desktop 实现读 `docs/M15_DESKTOP_INTERNAL_PILOT_IMPLEMENTATION.md`，最新打包验收读 `docs/M15_PACKAGED_SEED_PLUGIN_ACCEPTANCE_20260720.md`。当前先关闭正式 Electron user-data 隔离风险，再完成内部运营自然语言全链试用；M14 真实动态样片 Gate 继续独立保留。
+依次读取：`AGENTS.md`、`docs/PRODUCT_AGENT_DIRECTION.md`、`docs/AI_HANDOFF.md`、`docs/PROJECT_STATE.md`、`docs/MVP_SCOPE.md`、`docs/ARCHITECTURE_CURRENT.md`。本次重建再读 `docs/REBASELINE_AND_CLEANUP_20260716.md`；M0–M8 回顾读 `docs/history/product-creative-legacy/README.md`；周十五严格基线读 `docs/product-bases/zhou-shiwu-honeydew/STRICT_BASELINE.md`；M11 实现读 `docs/M11_PROFESSIONAL_CREATIVE_WORKFLOW_IMPLEMENTATION.md`，用户验收证据读 `docs/reviews/M11_ZHOU_SHIWU_CREATIVE_PACK_REVIEW.md`；M12 实现与恢复读 `docs/M12_PROFESSIONAL_BUSINESS_SKILLS_IMPLEMENTATION.md`；M13 媒体生产读 `docs/M13_RELIABLE_MEDIA_PRODUCTION_IMPLEMENTATION.md`；M13.1 动态镜头、冻结与动作门禁读 `docs/M13_1_DYNAMIC_SHOT_PRODUCTION_IMPLEMENTATION.md`；M14 QA 读 `docs/M14_AUTOMATIC_MEDIA_QA_REPAIR_IMPLEMENTATION.md`，真实执行和中断恢复读 `docs/M14_LIVE_GATE_20260717.md`；M15 Desktop 实现读 `docs/M15_DESKTOP_INTERNAL_PILOT_IMPLEMENTATION.md`，打包验收读 `docs/M15_PACKAGED_SEED_PLUGIN_ACCEPTANCE_20260720.md`，宿主数据隔离证据读 `docs/M15_FRESH_INSTALL_USER_DATA_ISOLATION_20260720.md`。当前完成内部运营自然语言全链试用；M14 真实动态样片 Gate 继续独立保留。
 
 ---
 

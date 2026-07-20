@@ -32,6 +32,7 @@
 17. `docs/M14_LIVE_GATE_20260717.md`
 18. `docs/M15_DESKTOP_INTERNAL_PILOT_IMPLEMENTATION.md`
 19. `docs/M15_PACKAGED_SEED_PLUGIN_ACCEPTANCE_20260720.md`
+20. `docs/M15_FRESH_INSTALL_USER_DATA_ISOLATION_20260720.md`
 
 M10 必读 `docs/M10_PRODUCT_COGNITION_AUTONOMOUS_CREATION_IMPLEMENTATION.md`、`docs/M10_LIVE_PROVIDER_AND_SOURCE_INTEGRATION.md` 和 `docs/plans/2026-07-14-m10-zero-to-product-brain-plan.md`。M9.1 SDK/插件 UI/分发再读 `docs/M9_1_DESKTOP_PLUGIN_SDK_IMPLEMENTATION.md`。
 
@@ -113,11 +114,14 @@ M10 必读 `docs/M10_PRODUCT_COGNITION_AUTONOMOUS_CREATION_IMPLEMENTATION.md`、
   backend、认证 discovery/bundle/diagnostics、插件深链及 Overview/Tasks/Review/Assets/Learning 真实
   Electron 验收。real-provider 保持关闭，XHS/Douyin 可选离线，外部调用为 0。完整证据见
   `docs/M15_PACKAGED_SEED_PLUGIN_ACCEPTANCE_20260720.md`。
+- fresh-install user-data 隔离已在当前 worktree 修复并实测：测试模式缺少、相对或越界路径即
+  fail closed，Chromium 使用显式 `--user-data-dir`；临时沙箱有运行写入而受保护的 37 个正式
+  Hermes 状态文件前后差异为 0，残留测试进程为 0。实现随本文所在本地提交保存、尚未推送，证据见
+  `docs/M15_FRESH_INSTALL_USER_DATA_ISOLATION_20260720.md`。
 
 ## 当前待办/下一入口
 
-M15 packaged fresh-install 与插件 UI 已通过。下一工程动作是隔离 Electron `userData`/最近项目状态，
-并用正式 Hermes 文件级前后快照关闭“验收窗口出现宿主状态时间戳变化”的未知风险。之后由内部运营人员按
+M15 packaged fresh-install、插件 UI 和正式宿主数据隔离已通过。下一工程动作是由内部运营人员按
 `docs/M15_DESKTOP_INTERNAL_PILOT_IMPLEMENTATION.md` 和
 `docs/M15_PACKAGED_SEED_PLUGIN_ACCEPTANCE_20260720.md` 完成自然语言全链并记录接受/修改结论。
 M15 人工门禁和 M14 独立真实样片门禁都完成前不进入 M16。
@@ -133,8 +137,8 @@ Codex 只做本地导入、Product Plate 合成、QA/返修；不得绕过租户
 - XHS 旧账号 `-104` 已解决；当前限制是自然语言 E2E 中 `ctx.llm` 不可用，导致深度 LLM 摘要包未生成，但 snapshot 与规则候选均已保存。
 - M13 已提供 ffmpeg/ffprobe 路径发现和 readiness；M15 通用 Hermes Desktop NSIS、固定 fork
   runtime、seed plugin 和真实 UI 已通过。媒体工具可移植性和独立品牌安装包仍未验收。
-- fresh-install 的 runtime/workspace/plugin 均在 `C:\tmp`，但正式 Hermes 目录的部分宿主状态文件
-  在验收窗口出现新时间戳且原因未知；未回滚。必须先增加 Electron user-data 隔离/断言。
+- 历史验收窗口内正式 Hermes 状态文件时间戳变化的原因仍不可追溯且未回滚；新构建已通过
+  fail-closed user-data 路径约束和 37 个受保护文件零差异验收，不再是当前阻塞。
 - 豆包图片带“AI生成”水印；Seedance 会生成式重绘包装，只可作为链路审计，不能宣传为包装保真。
 - M10 的旧 DONE 口径已被真实样片推翻：Provider 链路虽成功，但创意和包装质量未通过。不得再把“获得可播放文件”写成 M10 完成。
 - `verify_m2_workflow_run.ps1` 本轮未完成；不得写成通过。

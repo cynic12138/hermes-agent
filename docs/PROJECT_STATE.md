@@ -10,6 +10,8 @@
   `DONE_IN_PILOT_REF_UNPUBLISHED_LIVE_GATE_AND_USER_ACCEPTANCE_PENDING`
 - M15 Desktop 内部试用状态：
   `PACKAGED_FRESH_INSTALL_AND_PLUGIN_UI_ACCEPTED_UNPUBLISHED_OPERATOR_FULL_FLOW_PENDING`
+- M15 fresh-install 宿主数据隔离：`DONE_IN_LOCAL_BRANCH_UNPUBLISHED`；验证时 HEAD
+  `93753c4d659480a81ee73f0246f692ef3cf70835`，受保护的 37 个正式状态文件前后零差异
 - 当前 Live Gate：`LOCAL_GATE_PASSED / EXPLICIT_EXTERNAL_DISCLOSURE_APPROVED / TENANT_POLICY_BLOCKED`；
   用户已明确授权，但 Codex 租户策略仍禁止外发 workspace 产品资料。本次调用数为 0。
   执行真源为
@@ -143,10 +145,15 @@
   为 `8291e28588ca06d5a1613c05f30699032540ff42c33b5dfce2694ed60adf9937`。实施真源为
   `docs/M15_DESKTOP_INTERNAL_PILOT_IMPLEMENTATION.md`，打包验收真源为
   `docs/M15_PACKAGED_SEED_PLUGIN_ACCEPTANCE_20260720.md`。
+- M15 user-data 隔离修复：fresh-install 必须使用系统临时 sandbox root、独立 Electron
+  `userData` 和独立 `HERMES_HOME`，任一缺少、相对或越界即 fail closed；harness 同时传入
+  Chromium `--user-data-dir`。真实打包壳启动 5 个 Electron 进程，临时沙箱 6 个运行写入，
+  受保护的 37 个正式状态文件差异为 0，结束后残留测试进程为 0。证据见
+  `docs/M15_FRESH_INSTALL_USER_DATA_ISOLATION_20260720.md`。
 
 ## PLANNED
 
-- M15 正式 Electron user-data 隔离修复/确认、内部运营人工全链试用和 M16 母创意受控规模化。完整路线见 `docs/PRODUCT_AGENT_DIRECTION.md`。
+- M15 内部运营人工全链试用和 M16 母创意受控规模化。完整路线见 `docs/PRODUCT_AGENT_DIRECTION.md`。
 - M15 人工 Gate 通过前不进入 M16；M14 真实动态样片 Gate 继续独立完成，不扩展新 Provider 或批量生产。
 
 ## BLOCKED
@@ -157,8 +164,8 @@
 - M14 已标记
   `DONE_IN_PILOT_REF_UNPUBLISHED_LIVE_GATE_AND_USER_ACCEPTANCE_PENDING`。
 - M15 packaged fresh-install 和插件 UI 已通过；内部运营自然语言任务、恢复、反馈/学习全链尚未完成。
-- fresh-install 的 runtime/workspace/plugin 已隔离到 `C:\tmp`，但正式 Hermes 目录在验收窗口出现
-  宿主状态文件时间戳变化，原因 `UNKNOWN`；关闭 Electron user-data 隔离风险前不得宣称零触碰正式宿主状态。
+- 历史验收窗口内正式 Hermes 状态文件时间戳变化的具体来源仍为 `UNKNOWN`，且未回滚；新构建已通过
+  fail-closed 路径约束和文件级零差异验收，当前安装器隔离风险已关闭。
 - 正式可发布产品视频仍被 M13/M14 联合真实 Provider/VLM Live Gate 和用户质量验收阻塞。
 
 ## DEPRECATED
@@ -223,9 +230,8 @@
 
 ## 下一步推荐
 
-M15 packaged fresh-install、seed user-plugin、认证 API、动态路由和五视图已经通过。下一步先让
-安装器显式隔离 Electron `userData`/最近项目状态，并用文件级前后快照证明不会触碰正式 Hermes；
-随后由一名内部运营人员按 `docs/M15_DESKTOP_INTERNAL_PILOT_IMPLEMENTATION.md` 和
+M15 packaged fresh-install、seed user-plugin、认证 API、动态路由、五视图和正式宿主数据隔离已经通过。
+下一步由一名内部运营人员按 `docs/M15_DESKTOP_INTERNAL_PILOT_IMPLEMENTATION.md` 和
 `docs/M15_PACKAGED_SEED_PLUGIN_ACCEPTANCE_20260720.md` 完成 onboarding、自然语言任务、三节点
 审阅、中断恢复和反馈学习，并由产品/内容负责人记录接受或修改结论。
 

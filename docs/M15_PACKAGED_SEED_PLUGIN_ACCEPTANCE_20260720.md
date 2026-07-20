@@ -98,7 +98,7 @@ sourceCommit: a0081ddfbe966473b996f8f6e3a879ab6720888f
 
 这证明 bundle → registry → route → mount → authenticated API → workspace-scoped read model 的实际桌面链路可用。没有用单元测试或直接 Python 函数替代该验收。
 
-## 7. 隔离结论与已知风险
+## 7. 隔离结论与后续修复
 
 已确认：
 
@@ -107,10 +107,12 @@ sourceCommit: a0081ddfbe966473b996f8f6e3a879ab6720888f
 - 用户级 `HERMES_HOME`、`HERMES_GIT_BASH_PATH` 仍为空；用户 PATH 仍为 `C:\Users\1\AppData\Local\Microsoft\WindowsApps;`。
 - 隔离日志中没有正式 Hermes 路径引用；正式数据库二进制中未检索到本次产品名或沙箱路径。
 
-未知/风险：
+原未知风险已于同日后续修复关闭：
 
-- 正式目录 `C:\Users\1\AppData\Local\hermes` 的若干宿主状态文件在验收窗口出现新时间戳。现有证据不能确认是本次打包壳共用了 Electron user-data、其他本机 Hermes 活动，还是后台宿主状态刷新。
-- 未删除、回滚或覆盖正式目录。后续安装器应显式隔离 Electron `userData`/最近项目状态，并增加自动化断言；在完成前不得承诺 fresh-install 对正式宿主状态“零触碰”。
+- fresh-install 现在必须提供位于系统临时目录内的 sandbox root、Electron `userData` 和 `HERMES_HOME`，缺少或越界即 fail closed。
+- harness 同时传入 Chromium `--user-data-dir`，不再只依赖可选环境变量覆盖。
+- 新打包壳正向实测中临时沙箱有 6 个运行写入，受保护的 37 个正式状态文件前后差异为 0，残留测试进程为 0。
+- 历史时间戳变化的具体来源仍不可追溯；没有删除、回滚或覆盖正式目录。完整证据见 `docs/M15_FRESH_INSTALL_USER_DATA_ISOLATION_20260720.md`。
 - 新建项目对话框在长目录路径下出现横向溢出，Create 按钮需要水平滚动才能看到。它不阻断插件链路，但属于内部运营 UX 缺陷。
 
 ## 8. 最终回归
@@ -146,4 +148,4 @@ Python 回归的前两次尝试分别被系统临时目录权限和“测试输�
 4. 先运行 Node seed/bootstrap、Desktop 五文件、Python 四文件、M9 recovery、public surface 和 typecheck。
 5. 重新构建 NSIS；记录安装器 hash，使用全新隔离 home/workspace/user-data 运行 fresh-install。
 6. 在真实 Electron 中复验插件深链与五视图；不要只调用 backend。
-7. 检查正式 Hermes 目录在验收前后的文件级变化，关闭 user-data 隔离风险后再做运营试用。
+7. 检查正式 Hermes 目录在验收前后的文件级变化；必须保持零差异。隔离修复与基准证据见 `docs/M15_FRESH_INSTALL_USER_DATA_ISOLATION_20260720.md`。

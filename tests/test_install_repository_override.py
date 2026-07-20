@@ -34,4 +34,6 @@ def test_windows_prerequisite_installers_do_not_persist_isolated_desktop_environ
 
 
 def test_desktop_fresh_install_confines_playwright_browsers_to_sandbox() -> None:
+    assert "env.HERMES_DESKTOP_FRESH_SANDBOX_ROOT = sandbox" in DESKTOP_TEST_RUNNER
     assert "env.PLAYWRIGHT_BROWSERS_PATH = path.join(hermesHome, 'playwright-browsers')" in DESKTOP_TEST_RUNNER
+    assert "spawn(APP.binary, [`--user-data-dir=${userDataDir}`]" in DESKTOP_TEST_RUNNER

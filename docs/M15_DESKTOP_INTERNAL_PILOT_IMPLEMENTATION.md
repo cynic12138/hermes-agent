@@ -254,9 +254,10 @@ stamp 为 clean；未顺带修复两个非 M15 build warning。
 - **Fresh-install gate：已通过。**旧包 Raw DNS 和无代理 HTTPS clone 停滞保留为历史证据；在用户
   授权的进程级代理下，新包完成固定 runtime、seed plugin、backend、认证 API、路由和真实 UI 验收。
 - **Operator acceptance gate：**内部运营人员尚未在可运行的 Desktop 形态中亲自完成一次 onboarding → 自然语言任务 → 审阅 → 恢复 → 反馈全链，因此 M15 不能标记为最终 DONE。
-- **Host user-data 隔离：**runtime/workspace/plugin 和日志均在 `C:\tmp`，但正式 Hermes 目录部分宿主
-  状态文件在验收窗口出现新时间戳，原因 `UNKNOWN`。未删除或回滚；必须增加 Electron `userData`/
-  最近项目状态隔离及文件级断言，关闭前不得承诺对正式 Hermes 零触碰。
+- **Host user-data 隔离：已关闭。**fresh-install 现要求系统临时 sandbox root、Electron `userData` 和
+  `HERMES_HOME` 三项绝对路径且严格包含；缺少或越界即 fail closed。新打包壳实测临时沙箱有写入、
+  受保护的 37 个正式状态文件差异为 0。历史时间戳变化来源仍不可追溯且未回滚。证据见
+  `docs/M15_FRESH_INSTALL_USER_DATA_ISOLATION_20260720.md`。
 - `test:desktop:existing` 仍未执行，因为它会读取并使用用户真实 Hermes 配置，需在人工试用时单独确认。
 - M14 动态真实 Provider Live Gate 仍独立 pending；M15 UI 通过不能替代真实样片质量。
 - 主图上传复用 Hermes chat attachment，不是 Product Creative 页内文件选择器。
@@ -270,7 +271,7 @@ stamp 为 clean；未顺带修复两个非 M15 build warning。
 
 ## 11. 内部运营人工试用脚本
 
-前置条件：使用本记录中的 `a0081dd` 或更新的 clean 安装器，并先完成 Electron user-data 隔离确认。
+前置条件：使用包含 `docs/M15_FRESH_INSTALL_USER_DATA_ISOLATION_20260720.md` 所述修复的 clean 安装器。
 
 1. 记录 Git ref、Desktop 壳和插件分发 SHA-256，在非生产 workspace 安装并启动 Hermes Desktop。
 2. 打开 Product Creative；选择一个空 workspace。

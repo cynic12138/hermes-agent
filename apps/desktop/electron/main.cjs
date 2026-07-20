@@ -1,3 +1,11 @@
+const path = require('node:path')
+const { validateFreshInstallIsolation } = require('./fresh-install-isolation.cjs')
+
+// Test builds must prove their writable roots are beneath a dedicated system
+// temp sandbox before Electron reads any normal Hermes path. Fail closed if a
+// direct/manual launch drops one of the isolation variables.
+const FRESH_INSTALL_ISOLATION = validateFreshInstallIsolation(process.env)
+
 const {
   app,
   BrowserWindow,
@@ -21,7 +29,6 @@ const crypto = require('node:crypto')
 const fs = require('node:fs')
 const http = require('node:http')
 const https = require('node:https')
-const path = require('node:path')
 const { pathToFileURL } = require('node:url')
 const { execFileSync, spawn } = require('node:child_process')
 const { installEmbedReferer } = require('./embed-referer.cjs')
@@ -149,7 +156,7 @@ try {
   }
 }
 
-const USER_DATA_OVERRIDE = process.env.HERMES_DESKTOP_USER_DATA_DIR
+const USER_DATA_OVERRIDE = FRESH_INSTALL_ISOLATION?.userDataDir || process.env.HERMES_DESKTOP_USER_DATA_DIR
 if (USER_DATA_OVERRIDE) {
   const resolvedUserData = path.resolve(USER_DATA_OVERRIDE)
   fs.mkdirSync(resolvedUserData, { recursive: true })

@@ -257,13 +257,14 @@ function launchFresh() {
   env.HERMES_DESKTOP_CWD = cwd
   env.HERMES_DESKTOP_IGNORE_EXISTING = '1'
   env.HERMES_DESKTOP_TEST_MODE = 'fresh-install'
+  env.HERMES_DESKTOP_FRESH_SANDBOX_ROOT = sandbox
   env.HERMES_DESKTOP_USER_DATA_DIR = userDataDir
   env.HERMES_HOME = hermesHome
   env.PLAYWRIGHT_BROWSERS_PATH = path.join(hermesHome, 'playwright-browsers')
   delete env.HERMES_DESKTOP_HERMES
   delete env.HERMES_DESKTOP_HERMES_ROOT
 
-  const child = spawn(APP.binary, [], {
+  const child = spawn(APP.binary, [`--user-data-dir=${userDataDir}`], {
     cwd: os.homedir(),
     detached: true,
     env,

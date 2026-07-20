@@ -6,14 +6,13 @@
 
 - 决议：用户选择方案 A；实现提交 `25e26df` 已推送到 `origin/product-creative-rebaseline-20260716`。
 - 结果：`a0081dd` 安装器已完成隔离 fresh-install、seed user-plugin、认证 API 和真实 Electron 五视图验收。
-- 剩余：关闭 Electron user-data 隔离风险，并完成运营人员自然语言人工全链。
+- 剩余：完成运营人员自然语言人工全链。
 
-### M15 安装器是否会触碰正式 Hermes 的宿主 user-data？
+### RESOLVED 2026-07-20：M15 安装器是否会触碰正式 Hermes 的宿主 user-data？
 
-- 为什么：runtime、workspace 和插件均在 `C:\tmp`，但正式 Hermes 目录的部分状态文件在验收窗口出现新时间戳。
-- 不确认的影响：无法向运营承诺测试安装与现有 Hermes 最近项目/窗口状态完全隔离。
-- 当前推断：Electron `userData` 或宿主最近项目状态可能未随 `HERMES_HOME` 一起隔离；因果证据不足，状态 `UNKNOWN`。
-- 推荐：为 fresh-install 进程显式指定独立 Electron user-data，测试前后对正式目录做文件级快照和零变化断言；不自动回滚用户数据。
+- 决议：fresh-install 必须使用系统临时 sandbox root、独立 Electron `userData` 和独立 `HERMES_HOME`；缺少、相对或越界路径均 fail closed，并显式传入 Chromium `--user-data-dir`。
+- 证据：新打包壳正向运行时临时沙箱有 6 个运行写入，受保护的 37 个正式状态文件前后差异为 0；负向缺参运行也未修改正式关键文件。
+- 保留事实：此前时间戳变化的历史因果仍为 `UNKNOWN`，未删除或回滚用户数据。实施与证据见 `docs/M15_FRESH_INSTALL_USER_DATA_ISOLATION_20260720.md`。
 
 ### RESOLVED 2026-07-20：是否授权 push 重建基线与既有本地提交？
 

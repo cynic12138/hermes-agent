@@ -60,6 +60,6 @@
 | 2026-07-20 | M15 采用方案 A：推送可获取 pilot ref，不合并 main、不 tag/release | 薄安装器必须从 Git ref 获取包含 M15 的 runtime；本地 worktree override 不能作为运营交付 | 重做通用 bootstrap；继续仅本机预装 | git、packaging、pilot | 用户明确授权；实现提交 `25e26df`；`a0081dd` packaged acceptance；origin pilot branch | 是；packaged gate passed |
 | 2026-07-20 | 动态插件路由必须先于聊天 `:sessionId` 解释路径 | 真实 Electron 证明 `/product-creative` 会被动态 session 路由吞掉；仅 registry 加载成功不足以保证可达 | 为 Product Creative 加专属 core Route；静默跳回聊天 | Desktop SDK、deep-link、错误态 | `a0081dd`；`routes.test.ts`；`docs/M15_PACKAGED_SEED_PLUGIN_ACCEPTANCE_20260720.md` | 是 |
 | 2026-07-20 | M15 packaged gate 与运营全链 gate 分离 | fresh-install、seed plugin、API 和五视图已通过，但尚无内部运营自然语言任务/恢复/学习全链证据 | 打开页面即宣称 M15 产品完成 | status、pilot、release | `docs/M15_PACKAGED_SEED_PLUGIN_ACCEPTANCE_20260720.md` | 是 |
-| 2026-07-20 | 正式 Hermes user-data 零触碰必须由文件级证据证明 | runtime/workspace/plugin 在沙箱，但正式 Hermes 宿主状态文件在验收窗口出现时间戳变化且因果未知 | 只检查 `HERMES_HOME` 就承诺完全隔离；自动回滚正式目录 | installer、Electron、safety | fresh-install 前后快照；M15 packaged acceptance | 是；隔离修复 pending |
+| 2026-07-20 | 正式 Hermes user-data 零触碰必须由 fail-closed 路径约束和文件级证据共同证明 | runtime/workspace/plugin 在沙箱，但正式 Hermes 宿主状态文件曾在验收窗口出现时间戳变化且因果未知 | 只检查 `HERMES_HOME` 就承诺完全隔离；自动回滚正式目录 | installer、Electron、safety | `fresh-install-isolation.cjs`；37 个受保护文件零差异；`docs/M15_FRESH_INSTALL_USER_DATA_ISOLATION_20260720.md` | 是；本地分支已关闭 |
 
 无法确认来源或理由的历史选择未写成确定事实。
