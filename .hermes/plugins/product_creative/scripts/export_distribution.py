@@ -54,13 +54,28 @@ def _same_or_child(candidate: Path, parent: Path) -> bool:
         return False
 
 
-def assert_safe_output_directory(output: Path, repo_root: Path) -> Path:
+def assert_safe_output_directory(
+    output: Path,
+    repo_root: Path,
+    *,
+    allowed_output_root: Path | None = None,
+) -> Path:
     output = output.expanduser().resolve(strict=False)
     repo_root = repo_root.resolve(strict=True)
     anchor = Path(output.anchor).resolve(strict=False)
     if output == anchor:
         raise ValueError("Refusing to export to a volume root")
-    if _same_or_child(output, repo_root) or _same_or_child(repo_root, output):
+    inside_repository = _same_or_child(output, repo_root)
+    allowed_build_root = (repo_root / "apps/desktop/build/seed-plugins").resolve(strict=False)
+    explicit_build_output = False
+    if allowed_output_root is not None:
+        allowed_output_root = allowed_output_root.resolve(strict=False)
+        explicit_build_output = (
+            allowed_output_root == allowed_build_root
+            and output != allowed_output_root
+            and _same_or_child(output, allowed_output_root)
+        )
+    if (inside_repository and not explicit_build_output) or _same_or_child(repo_root, output):
         raise ValueError("Output directory must be outside the source repository and not its ancestor")
     return output
 
@@ -98,11 +113,16 @@ def export_distribution(
     *,
     expected_version: str = "",
     repo_root: Path | None = None,
+    allowed_output_root: Path | None = None,
 ) -> Path:
     script_dir = Path(__file__).resolve().parent
     repo_root = (repo_root or script_dir.parents[3]).resolve(strict=True)
     plugin_root = repo_root / PLUGIN_RELATIVE
-    output = assert_safe_output_directory(output_directory, repo_root)
+    output = assert_safe_output_directory(
+        output_directory,
+        repo_root,
+        allowed_output_root=allowed_output_root,
+    )
 
     _run([sys.executable, str(plugin_root / "scripts/build_desktop_bundle.py")], cwd=repo_root)
 
@@ -180,11 +200,13 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output-directory", required=True, type=Path)
     parser.add_argument("--expected-version", default="")
+    parser.add_argument("--allow-output-root", type=Path)
     args = parser.parse_args()
     try:
         output = export_distribution(
             args.output_directory,
             expected_version=args.expected_version,
+            allowed_output_root=args.allow_output_root,
         )
     except (OSError, RuntimeError, ValueError, subprocess.CalledProcessError) as error:
         print(str(error), file=sys.stderr)

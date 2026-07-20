@@ -9,6 +9,7 @@
 const fs = require("node:fs")
 const path = require("node:path")
 const { spawnSync } = require("node:child_process")
+const { stageSeedPlugins } = require("./stage-seed-plugins.cjs")
 
 function electronDistDir() {
   try {
@@ -33,6 +34,14 @@ function electronBuilderCli() {
   const bin = require(pkgJson).bin
   const rel = typeof bin === "string" ? bin : bin["electron-builder"]
   return path.join(path.dirname(pkgJson), rel)
+}
+
+try {
+  const manifest = stageSeedPlugins()
+  console.log(`[run-electron-builder] staged ${manifest.plugins.length} seed plugin(s).`)
+} catch (error) {
+  console.error(`[run-electron-builder] seed plugin staging failed: ${error.message}`)
+  process.exit(1)
 }
 
 const dist = electronDistDir()

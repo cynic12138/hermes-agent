@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "plugins": [
+    {
+      "name": "product_creative",
+      "version": "9.1.0-alpha.1",
+      "exporter": "../../.hermes/plugins/product_creative/scripts/export_distribution.py"
+    }
+  ]
+}

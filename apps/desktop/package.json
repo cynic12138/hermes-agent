@@ -192,6 +192,10 @@
         "to": "native-deps"
       },
       {
+        "from": "build/seed-plugins",
+        "to": "seed-plugins"
+      },
+      {
         "from": "assets/icon.ico",
         "to": "icon.ico"
       }

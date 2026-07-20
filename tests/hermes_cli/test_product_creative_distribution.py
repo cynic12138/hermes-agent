@@ -130,6 +130,24 @@ def test_exporter_rejects_output_inside_or_above_repository(tmp_path):
     ).resolve()
 
 
+def test_exporter_allows_only_an_explicit_narrow_build_output_root():
+    exporter = _load_exporter()
+    allowed_root = ROOT / "apps" / "desktop" / "build" / "seed-plugins"
+    output = allowed_root / "product_creative"
+
+    assert exporter.assert_safe_output_directory(
+        output,
+        ROOT,
+        allowed_output_root=allowed_root,
+    ) == output.resolve()
+    with pytest.raises(ValueError, match="outside the source repository"):
+        exporter.assert_safe_output_directory(
+            ROOT / ".hermes" / "plugins" / "unsafe",
+            ROOT,
+            allowed_output_root=allowed_root,
+        )
+
+
 def test_exporter_filters_runtime_generated_and_distribution_implementation_files():
     exporter = _load_exporter()
 
