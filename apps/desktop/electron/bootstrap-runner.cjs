@@ -39,6 +39,7 @@ const fsp = require('node:fs/promises')
 const path = require('node:path')
 const https = require('node:https')
 const { spawn } = require('node:child_process')
+const { installSeedPlugins } = require('./seed-plugin-installer.cjs')
 
 const IS_WINDOWS = process.platform === 'win32'
 
@@ -658,12 +659,17 @@ async function runBootstrap(opts) {
     activeRoot,
     sourceRepoRoot,
     bundledInstallScript,
+    seedPluginRoot,
     hermesHome,
     logRoot,
     onEvent,
     abortSignal,
     writeMarker // callback to write the bootstrap-complete marker; main.cjs provides
   } = opts
+  const resolveInstallScriptFn = opts._resolveInstallScript || resolveInstallScript
+  const fetchManifestFn = opts._fetchManifest || fetchManifest
+  const runStageFn = opts._runStage || runStage
+  const installSeedPluginsFn = opts._installSeedPlugins || installSeedPlugins
 
   // Bail before spawning anything if the user already cancelled — otherwise an
   // already-aborted signal would still fetch the manifest (a spawn) before the
@@ -708,7 +714,7 @@ async function runBootstrap(opts) {
 
   try {
     // 1. Resolve the platform installer.
-    const scriptInfo = await resolveInstallScript({
+    const scriptInfo = await resolveInstallScriptFn({
       installStamp,
       sourceRepoRoot,
       bundledInstallScript,
@@ -718,7 +724,7 @@ async function runBootstrap(opts) {
     const installerKind = scriptInfo.kind || 'powershell'
 
     // 2. Fetch manifest
-    const manifest = await fetchManifest({
+    const manifest = await fetchManifestFn({
       scriptPath: scriptInfo.path,
       installerKind,
       emit,
@@ -736,12 +742,44 @@ async function runBootstrap(opts) {
     //    invoked -- install.ps1's own -NonInteractive handler in those stages
     //    emits skipped=true. We trust the protocol rather than filtering
     //    client-side.
+    let seedPluginsHandled = false
     for (const stage of manifest.stages) {
       if (abortSignal && abortSignal.aborted) {
         emit({ type: 'failed', error: 'bootstrap cancelled by user' })
         return { ok: false, cancelled: true }
       }
-      const ev = await runStage({
+      if (stage.name === 'bootstrap-marker' && seedPluginRoot && !seedPluginsHandled) {
+        const seedStartedAt = Date.now()
+        emit({ type: 'stage', name: 'desktop-seed-plugins', state: 'running' })
+        try {
+          const seedResult = await installSeedPluginsFn({
+            seedRoot: seedPluginRoot,
+            hermesHome,
+            activeRoot,
+            emit
+          })
+          seedPluginsHandled = true
+          emit({
+            type: 'stage',
+            name: 'desktop-seed-plugins',
+            state: seedResult.skipped ? 'skipped' : 'succeeded',
+            durationMs: Date.now() - seedStartedAt,
+            json: seedResult
+          })
+        } catch (error) {
+          const message = error.message || String(error)
+          emit({
+            type: 'stage',
+            name: 'desktop-seed-plugins',
+            state: 'failed',
+            durationMs: Date.now() - seedStartedAt,
+            error: message
+          })
+          emit({ type: 'failed', stage: 'desktop-seed-plugins', error: message })
+          return { ok: false, failedStage: 'desktop-seed-plugins', error: message }
+        }
+      }
+      const ev = await runStageFn({
         scriptPath: scriptInfo.path,
         installerKind,
         stage,
@@ -755,6 +793,12 @@ async function runBootstrap(opts) {
         emit({ type: 'failed', stage: stage.name, error: ev.error || 'stage failed' })
         return { ok: false, failedStage: stage.name, error: ev.error }
       }
+    }
+
+    if (seedPluginRoot && !seedPluginsHandled) {
+      const message = 'Installer manifest has no bootstrap-marker stage for seed plugin ordering'
+      emit({ type: 'failed', stage: 'desktop-seed-plugins', error: message })
+      return { ok: false, failedStage: 'desktop-seed-plugins', error: message }
     }
 
     // 4. Write the bootstrap-complete marker.
@@ -771,7 +815,10 @@ async function runBootstrap(opts) {
     return { ok: false, error: err.message || String(err) }
   } finally {
     try {
-      runLog.stream.end()
+      await new Promise(resolve => {
+        runLog.stream.once('error', resolve)
+        runLog.stream.end(resolve)
+      })
     } catch {
       void 0
     }

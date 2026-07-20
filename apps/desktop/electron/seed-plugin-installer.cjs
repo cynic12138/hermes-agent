@@ -122,25 +122,10 @@ async function installSeedPlugins(options) {
   const { seedRoot, hermesHome, activeRoot } = options
   const enablePlugin = options.enablePlugin || defaultEnablePlugin
   const emit = typeof options.emit === 'function' ? options.emit : () => {}
-  const manifestPath = path.join(seedRoot, 'manifest.json')
-  if (!fs.existsSync(manifestPath)) return { skipped: true, plugins: [] }
+  const validated = validatePackagedSeedPlugins(seedRoot, { required: false })
+  if (!validated) return { skipped: true, plugins: [] }
 
-  const manifest = readJson(manifestPath, 'seed plugin manifest')
-  if (manifest.schemaVersion !== 1 || !Array.isArray(manifest.plugins) || manifest.plugins.length === 0) {
-    throw new Error('Seed plugin manifest must use schemaVersion 1 with at least one plugin')
-  }
-  const names = new Set()
-  for (const entry of manifest.plugins) {
-    validateEntry(entry)
-    if (names.has(entry.name)) throw new Error(`Duplicate seed plugin name: ${entry.name}`)
-    names.add(entry.name)
-  }
-
-  const validatedPlugins = manifest.plugins.map(entry => ({
-    entry,
-    packagedRoot: validatePayload(seedRoot, entry)
-  }))
-
+  const { plugins: validatedPlugins } = validated
   const pluginRoot = path.join(hermesHome, 'plugins')
   fs.mkdirSync(pluginRoot, { recursive: true })
   const results = []
@@ -184,8 +169,34 @@ async function installSeedPlugins(options) {
   return { skipped: false, plugins: results }
 }
 
+function validatePackagedSeedPlugins(seedRoot, options = {}) {
+  const manifestPath = path.join(seedRoot, 'manifest.json')
+  if (!fs.existsSync(manifestPath)) {
+    if (options.required !== false) throw new Error(`Packaged seed plugin manifest is missing: ${manifestPath}`)
+    return null
+  }
+
+  const manifest = readJson(manifestPath, 'seed plugin manifest')
+  if (manifest.schemaVersion !== 1 || !Array.isArray(manifest.plugins) || manifest.plugins.length === 0) {
+    throw new Error('Seed plugin manifest must use schemaVersion 1 with at least one plugin')
+  }
+  const names = new Set()
+  for (const entry of manifest.plugins) {
+    validateEntry(entry)
+    if (names.has(entry.name)) throw new Error(`Duplicate seed plugin name: ${entry.name}`)
+    names.add(entry.name)
+  }
+
+  const validatedPlugins = manifest.plugins.map(entry => ({
+    entry,
+    packagedRoot: validatePayload(seedRoot, entry)
+  }))
+  return { manifest, plugins: validatedPlugins }
+}
+
 module.exports = {
   defaultEnablePlugin,
   installSeedPlugins,
+  validatePackagedSeedPlugins,
   validatePayload
 }

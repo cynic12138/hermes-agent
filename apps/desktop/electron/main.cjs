@@ -3097,6 +3097,9 @@ async function ensureRuntime(backend) {
       bundledInstallScript: process.resourcesPath
         ? path.join(process.resourcesPath, 'bootstrap', IS_WINDOWS ? 'install.ps1' : 'install.sh')
         : null,
+      seedPluginRoot: IS_PACKAGED && process.resourcesPath
+        ? path.join(process.resourcesPath, 'seed-plugins')
+        : null,
       hermesHome: HERMES_HOME,
       logRoot: path.join(HERMES_HOME, 'logs'),
       abortSignal: bootstrapAbortController.signal,

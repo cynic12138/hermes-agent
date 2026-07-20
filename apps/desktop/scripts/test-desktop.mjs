@@ -3,7 +3,11 @@ import os from 'node:os'
 import path from 'node:path'
 import { spawn, spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
+import { createRequire } from 'node:module'
 import { listPackage } from '@electron/asar'
+
+const require = createRequire(import.meta.url)
+const { validatePackagedSeedPlugins } = require('../electron/seed-plugin-installer.cjs')
 
 const DESKTOP_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const PACKAGE_JSON = JSON.parse(fs.readFileSync(path.join(DESKTOP_ROOT, 'package.json'), 'utf8'))
@@ -330,6 +334,13 @@ function validateBundle() {
     die(`Missing packaged bootstrap installer: ${bootstrapScript}`)
   }
 
+  let seedPlugins
+  try {
+    seedPlugins = validatePackagedSeedPlugins(path.join(APP.resourcesPath, 'seed-plugins')).manifest.plugins
+  } catch (err) {
+    die(`Invalid packaged seed plugins: ${err.message}`)
+  }
+
   // Positive assertion: node-pty native deps shipped
   const native = expectedNativeDepPaths()
   if (!exists(native.packageJson)) {
@@ -356,7 +367,7 @@ function validateBundle() {
 
   // Renderer payload check (either unpacked or in the asar)
   if (exists(APP.unpackedDistIndex)) {
-    return { stamp, nodeBinaries }
+    return { stamp, nodeBinaries, seedPlugins }
   }
   if (!exists(APP.asarPath)) {
     die(`Missing renderer payload: neither ${APP.unpackedDistIndex} nor ${APP.asarPath} exists`)
@@ -369,7 +380,7 @@ function validateBundle() {
   if (!normalized.includes('dist/index.html')) {
     die(`Missing renderer payload file in app.asar: ${APP.asarPath} (expected dist/index.html)`)
   }
-  return { stamp, nodeBinaries }
+  return { stamp, nodeBinaries, seedPlugins }
 }
 
 function printArtifacts(options = {}) {

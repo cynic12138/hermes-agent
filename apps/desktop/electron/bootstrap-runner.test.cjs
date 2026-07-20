@@ -246,3 +246,89 @@ test('resolveInstallScript rethrows when the 404 fallback is unavailable', async
     fs.rmSync(home, { recursive: true, force: true })
   }
 })
+
+test('bootstrap installs packaged seed plugins before the installer marker and completion marker', async () => {
+  const home = mkTmpHome()
+  try {
+    const order = []
+    const events = []
+    const result = await runBootstrap({
+      installStamp: { commit: 'e'.repeat(40), repository: 'cynic12138/hermes-agent' },
+      activeRoot: path.join(home, 'hermes-agent'),
+      sourceRepoRoot: null,
+      seedPluginRoot: path.join(home, 'packaged-seeds'),
+      hermesHome: home,
+      logRoot: path.join(home, 'logs'),
+      onEvent: event => events.push(event),
+      writeMarker: payload => {
+        order.push('desktop-completion-marker')
+        return payload
+      },
+      _resolveInstallScript: async () => ({ path: 'fixture-installer', kind: 'powershell' }),
+      _fetchManifest: async () => ({
+        protocol_version: 1,
+        stages: [
+          { name: 'config-templates' },
+          { name: 'platform-sdks' },
+          { name: 'bootstrap-marker' }
+        ]
+      }),
+      _runStage: async ({ stage }) => {
+        order.push(stage.name)
+        return { state: 'succeeded' }
+      },
+      _installSeedPlugins: async () => {
+        order.push('desktop-seed-plugins')
+        return { skipped: false, plugins: [{ name: 'fixture_plugin', state: 'installed' }] }
+      }
+    })
+
+    assert.equal(result.ok, true)
+    assert.deepEqual(order, [
+      'config-templates',
+      'platform-sdks',
+      'desktop-seed-plugins',
+      'bootstrap-marker',
+      'desktop-completion-marker'
+    ])
+    assert.ok(events.some(event => event.type === 'stage' && event.name === 'desktop-seed-plugins' && event.state === 'succeeded'))
+  } finally {
+    fs.rmSync(home, { recursive: true, force: true })
+  }
+})
+
+test('seed plugin failure prevents both bootstrap marker stages', async () => {
+  const home = mkTmpHome()
+  try {
+    const order = []
+    const result = await runBootstrap({
+      installStamp: { commit: 'f'.repeat(40), repository: 'cynic12138/hermes-agent' },
+      activeRoot: path.join(home, 'hermes-agent'),
+      sourceRepoRoot: null,
+      seedPluginRoot: path.join(home, 'packaged-seeds'),
+      hermesHome: home,
+      logRoot: path.join(home, 'logs'),
+      writeMarker: () => order.push('desktop-completion-marker'),
+      _resolveInstallScript: async () => ({ path: 'fixture-installer', kind: 'powershell' }),
+      _fetchManifest: async () => ({
+        protocol_version: 1,
+        stages: [{ name: 'config-templates' }, { name: 'bootstrap-marker' }]
+      }),
+      _runStage: async ({ stage }) => {
+        order.push(stage.name)
+        return { state: 'succeeded' }
+      },
+      _installSeedPlugins: async () => {
+        order.push('desktop-seed-plugins')
+        throw new Error('seed validation failed')
+      }
+    })
+
+    assert.equal(result.ok, false)
+    assert.equal(result.failedStage, 'desktop-seed-plugins')
+    assert.match(result.error, /seed validation failed/)
+    assert.deepEqual(order, ['config-templates', 'desktop-seed-plugins'])
+  } finally {
+    fs.rmSync(home, { recursive: true, force: true })
+  }
+})
