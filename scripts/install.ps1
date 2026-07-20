@@ -62,6 +62,10 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+function Test-IsolatedDesktopFreshInstall {
+    return $env:HERMES_DESKTOP_TEST_MODE -eq "fresh-install"
+}
+
 # Suppress Invoke-WebRequest's per-chunk progress bar.  Windows PowerShell
 # 5.1's progress UI repaints synchronously on every received byte, which
 # pegs CPU on a single core and throttles downloads by 10-100x (a 57MB
@@ -831,7 +835,7 @@ function Install-Git {
                 $changed = $true
             }
         }
-        if ($changed) {
+        if ($changed -and -not (Test-IsolatedDesktopFreshInstall)) {
             [Environment]::SetEnvironmentVariable("Path", ($userPathItems -join ";"), "User")
         }
 
@@ -890,7 +894,9 @@ function Set-GitBashEnvVar {
 
     foreach ($candidate in $candidates) {
         if ($candidate -and (Test-Path $candidate)) {
-            [Environment]::SetEnvironmentVariable("HERMES_GIT_BASH_PATH", $candidate, "User")
+            if (-not (Test-IsolatedDesktopFreshInstall)) {
+                [Environment]::SetEnvironmentVariable("HERMES_GIT_BASH_PATH", $candidate, "User")
+            }
             $env:HERMES_GIT_BASH_PATH = $candidate
             Write-Info "Set HERMES_GIT_BASH_PATH=$candidate"
             return
@@ -982,7 +988,7 @@ function Test-Node {
                 $nodeDir = "$HermesHome\node"
                 $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
                 $userPathItems = if ($userPath) { $userPath -split ";" } else { @() }
-                if ($userPathItems -notcontains $nodeDir) {
+                if (($userPathItems -notcontains $nodeDir) -and -not (Test-IsolatedDesktopFreshInstall)) {
                     $userPathItems += $nodeDir
                     [Environment]::SetEnvironmentVariable("Path", ($userPathItems -join ";"), "User")
                 }
@@ -1953,28 +1959,33 @@ function Set-PathVariable {
         $hermesBin = "$InstallDir\venv\Scripts"
     }
     
-    # Add the venv Scripts dir to user PATH so hermes is globally available
-    # On Windows, the hermes.exe in venv\Scripts\ has the venv Python baked in
-    $currentPath = [Environment]::GetEnvironmentVariable("Path", "User")
-    
-    if ($currentPath -notlike "*$hermesBin*") {
-        [Environment]::SetEnvironmentVariable(
-            "Path",
-            "$hermesBin;$currentPath",
-            "User"
-        )
-        Write-Success "Added to user PATH: $hermesBin"
+    $isIsolatedDesktopFreshInstall = $env:HERMES_DESKTOP_TEST_MODE -eq "fresh-install"
+    if ($isIsolatedDesktopFreshInstall) {
+        Write-Info "Skipping user PATH/HERMES_HOME persistence for isolated desktop fresh-install"
     } else {
-        Write-Info "PATH already configured"
-    }
-    
-    # Set HERMES_HOME so the Python code finds config/data in the right place.
-    # Only needed on Windows where we install to %LOCALAPPDATA%\hermes instead
-    # of the Unix default ~/.hermes
-    $currentHermesHome = [Environment]::GetEnvironmentVariable("HERMES_HOME", "User")
-    if (-not $currentHermesHome -or $currentHermesHome -ne $HermesHome) {
-        [Environment]::SetEnvironmentVariable("HERMES_HOME", $HermesHome, "User")
-        Write-Success "Set HERMES_HOME=$HermesHome"
+        # Add the venv Scripts dir to user PATH so hermes is globally available.
+        # On Windows, hermes.exe in venv\Scripts has the venv Python baked in.
+        $currentPath = [Environment]::GetEnvironmentVariable("Path", "User")
+
+        if ($currentPath -notlike "*$hermesBin*") {
+            [Environment]::SetEnvironmentVariable(
+                "Path",
+                "$hermesBin;$currentPath",
+                "User"
+            )
+            Write-Success "Added to user PATH: $hermesBin"
+        } else {
+            Write-Info "PATH already configured"
+        }
+
+        # Set HERMES_HOME so the Python code finds config/data in the right place.
+        # Only needed on Windows where we install to %LOCALAPPDATA%\hermes instead
+        # of the Unix default ~/.hermes.
+        $currentHermesHome = [Environment]::GetEnvironmentVariable("HERMES_HOME", "User")
+        if (-not $currentHermesHome -or $currentHermesHome -ne $HermesHome) {
+            [Environment]::SetEnvironmentVariable("HERMES_HOME", $HermesHome, "User")
+            Write-Success "Set HERMES_HOME=$HermesHome"
+        }
     }
     $env:HERMES_HOME = $HermesHome
     

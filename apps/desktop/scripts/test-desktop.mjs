@@ -255,6 +255,7 @@ function launchFresh() {
   env.HERMES_DESKTOP_TEST_MODE = 'fresh-install'
   env.HERMES_DESKTOP_USER_DATA_DIR = userDataDir
   env.HERMES_HOME = hermesHome
+  env.PLAYWRIGHT_BROWSERS_PATH = path.join(hermesHome, 'playwright-browsers')
   delete env.HERMES_DESKTOP_HERMES
   delete env.HERMES_DESKTOP_HERMES_ROOT
 
