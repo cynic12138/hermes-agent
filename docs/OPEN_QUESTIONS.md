@@ -2,12 +2,15 @@
 
 ## P0
 
-### 是否授权 push 重建基线与既有本地提交？
+### RESOLVED 2026-07-20：M15 干净机器应如何取得当前 runtime？
+
+- 决议：用户选择方案 A；实现提交 `25e26df` 已推送到 `origin/product-creative-rebaseline-20260716`。
+- 剩余：重建 install stamp、执行隔离 fresh-install 和运营人员人工全链。
+
+### RESOLVED 2026-07-20：是否授权 push 重建基线与既有本地提交？
 
 - 为什么：M9.1、M10 和本次重建基线均只在本地 Git/归档中保存，尚未同步到远端。
-- 不确认的影响：本机和离线归档可恢复，远端仍不是最新恢复源。
-- 当前推断：应先由用户审阅本地提交和验证结果，再决定是否 push；置信度高。
-- 推荐：push 与 release 分别授权；未经授权不执行。
+- 决议：用户授权只推送 pilot 分支；不合并 main、不 tag、不 release。已执行。
 
 ## P1
 
@@ -35,10 +38,10 @@
 - 为什么：系统需要统一的通过/修改/拒绝标准，不能只学习不同运营人员的个人审美。
 - 不确认的影响：Creative Profile 和 QA Rubric 可能出现互相冲突的反馈。
 - 当前推断：需要一位产品/内容负责人作为最终规则确认人，普通运营反馈作为证据；置信度中。
-- 推荐：在 M14 前确定负责人和最小质量 Rubric。
+- 推荐：在首次 M15 可复现 Desktop 人工试用前确定负责人和最小质量 Rubric。
 
 ## P2
 
-- Windows 内部试用包采用内嵌 Hermes 还是检测并复用本机 Hermes？当前需要在 M15 前决策。
+- Windows M15 继续复用现有 Hermes Desktop Electron/NSIS 薄安装架构，但当前尚缺可获取 runtime ref/bootstrap；是否在产品稳定后制作独立品牌、预捆绑媒体工具和默认 Product Creative 的 fat installer，留到内部试用证据充分后决策。
 - 是否需要 Web UI、多人/云/平台发布？推断：Final 1.0 后另行评估，置信度高。
 - 性能、可用性、保留、恢复时间等 NFR 目标是什么？当前 UNKNOWN。

@@ -12,7 +12,7 @@
 
 - M9 review/recovery console 已提交。
 - M9.1 通用 Desktop Plugin SDK、plugin-owned 五视图、Node 22 build、分发扫描和离线安装 E2E 已提交为 `83b4e8f`。
-- 尚未 push、tag、release。
+- pilot 分支已 push；未合并 main、未 tag、未 release。
 
 ### M10/M10.1：自然语言任务与真实外部链路
 
@@ -38,11 +38,13 @@
 - 新方向文档成为 Git 内权威入口。
 - 原脏工作区和运行数据可通过校验过的归档恢复。
 - 新开发分支不包含历史 runtime 数据、临时文件或密钥。
-- 本地提交、提交后回归、typecheck/build 和离线分发安装均完成；未 push/tag/release。
+- 提交、回归、typecheck/build、离线分发安装和 pilot branch push 均完成；未合并 main、tag 或 release。
 
-## 当前唯一开发阶段：M11 专业创意工作流与产物 Gate
+## 已完成阶段：M11 专业创意工作流与产物 Gate
 
 完整实施节点、契约、状态、测试和拆仓观察点见 `docs/plans/2026-07-16-m11-professional-creative-workflow-plan.md`。
+
+实现状态：`DONE_IN_PILOT_REF_UNPUBLISHED`。
 
 目标：让真实生成依赖完整、可审阅的创意生产链。
 
@@ -63,35 +65,131 @@
 - 选中灵感真实进入剧情、分镜和 Provider 输入。
 - 不再把通用字幕模板标记为剧情视频。
 
-## M12：专业业务 Skills 与创意导演
+当前证据：
+
+- 8 类版本化工件、Planner Gate、Provider Compiler、exact-main Story/Bible 接入和 Desktop 投影已完成。
+- M11 31、M10 35、Live adapter 10、distribution 3、Desktop backend/page 12 项测试通过。
+- 公共面保持 84 tools / 84 CLI；51 个 workflow action 契约无漂移。
+- 周十五真实主图公开 `r1` 审阅包已形成：自然语言 preview-first 后选择 B，产品 4.0 秒出现，包装路线为 `exact-main-composite`，Preflight QA 为 PASS。
+
+用户已于 2026-07-16 全部接受公开 `r1` 创意包并允许进入下一步。M11 尚未 commit、push、tag 或 release。
+
+## 已完成阶段：M12 专业业务 Skills 与创意导演
+
+进入条件：M11 创意包获得用户验收，且当前三个确定性候选的优缺点被转化为明确 Skill 需求。
 
 - 任务导演、研究、创意策略、独立评审、编剧、分镜、卡审和学习分析 Skills。
 - Web/XHS/Douyin 输出来源专属洞察。
 - 默认稳定、变化、探索三个候选。
 - Skill 定义触发、输入、输出、工具白名单、失败条件、Rubric 和正反案例。
 
-## M13：Production Bible 与可靠媒体生产
+实现状态：`DONE_IN_PILOT_REF_UNPUBLISHED`。
+
+当前证据：
+
+- 八个 Skill 已由 Catalog 校验并注册，生产无 executor 时 fail closed。
+- Skill execution 保存版本、输入/输出哈希、允许工具、实际动作和失败状态。
+- 固定候选、固定评分和固定剧情 profile 已由受控结构化 Skill 输出替换。
+- Web、XHS、Douyin 和历史素材产生来源专属 Research Insight。
+- stable/variation/exploration 候选具有历史结构相似度和 novelty strategy。
+- creative-review 独立评审；硬包装/合规 Gate 优先于语义 PASS。
+- script-writer、storyboard-director 和 compliance-guard 已进入 M11 工件链。
+- Desktop 展示 Skill provenance、执行状态和历史相似度。
+- 最终回归：M12 26、M11/M12 工件链 34、M10 35、Desktop backend/distribution/live 25、Desktop UI 14、bundle 2；M9 recovery、contract invariants、public surface、typecheck/build 均通过。
+
+实施与恢复证据见 `docs/M12_PROFESSIONAL_BUSINESS_SKILLS_IMPLEMENTATION.md`。
+M12 尚未 commit、push、tag 或 release。
+
+## 已完成离线阶段：M13 Production Bible 与可靠媒体生产
 
 - Provider Compiler 和逐镜头任务计划。
 - 产品 plate/抠图、生成背景、确定性字幕和后期合成。
 - 包装保真与生成式剧情兼容。
 - 单镜头重试、异步恢复和 ffmpeg/本机依赖诊断。
 
-## M14：自动质检、返修和学习质量
+实现状态：`DONE_IN_PILOT_REF_UNPUBLISHED_LIVE_GATE_PENDING`。
 
-- 包装、文字、人物、剧情、字幕、音画和技术质量检查。
-- QA Report、Repair Decision 和人工豁免。
-- 通过/修改/拒绝及原因成为标准反馈。
-- Product Grounding、Creative Profile、Channel Strategy、Production Knowledge 分层学习。
-- 手动发布表现可选；不开发自动投放效果分析。
+当前证据：
+
+- 五类媒体工件、逐镜头 Shot Graph、Product Plate、确定性 ASS 字幕和本地
+  H.264/AAC compositor 已完成。
+- 自然语言 preview-first → 方向选择 → 生产确认 → 任务授权 → 多镜头真实本地 MP4
+  E2E 已通过。
+- 成功镜头可复用，失败镜头可独立 attempt/resume；任务和媒体路径按 workspace 隔离。
+- M10–M13 回归 `119 passed`；Desktop UI `17 passed`、bundle `2 passed`、
+  typecheck/build、M9 recovery 25/25、public surface 84/84 均通过。
+- 临时分发包通过版本/哈希/敏感扫描和 enabled user-plugin 离线安装。
+
+剩余 Live Gate：
+
+- 真实豆包/Seedance 逐镜头异步提交、轮询、下载、重启恢复和最终合成。
+- 正式 Desktop 包自带或可配置的 ffmpeg/ffprobe。
+
+实施与恢复证据见 `docs/M13_RELIABLE_MEDIA_PRODUCTION_IMPLEMENTATION.md`。
+
+## 已完成本地阶段：M14 自动质检、返修和学习质量
+
+逐节点实施计划：
+`docs/plans/2026-07-16-m14-automatic-media-qa-repair-plan.md`。
+
+- 技术、字幕/OCR、包装保真、人物/场景、剧情连续性和音画检查已接入。
+- QA Report、Repair Decision、Human Override 和最多两轮局部返修已完成。
+- 自然语言恢复只重做失败镜头；通过/警告接受/拒绝形成审计和学习证据。
+- 未确认学习不会写 Canonical Product Brain。
+- M14 专项 `25 passed`、M10–M14 `145 passed`；Desktop、构建、M9/public surface、
+  分发扫描和 enabled user-plugin 离线安装通过。
+- 依赖与恢复修复后的 2026-07-17 补充回归：M13 `39 passed`、M14 `30 passed`、
+  M10–M14 与来源适配器组合 `191 passed`；Desktop 定向 `17 passed`。
+
+实现状态：
+`DONE_IN_PILOT_REF_UNPUBLISHED_LIVE_GATE_AND_USER_ACCEPTANCE_PENDING`。
+
+剩余门禁：
+
+- 用户已明确授权，但 Codex 租户策略仍禁止外发 workspace 产品资料；新调用为 0。已有真实
+  五图与 exact-main 成片形成 `REPAIR` 案例，仍缺真实 QA PASS 和返修后生成。安全下一步是
+  用户在 Codex 外部提供去敏结果，Codex 本地导入和 QA。执行真源见
+  `docs/M14_LIVE_GATE_20260717.md`。
+- 用户亲自验收一条 QA PASS 和一条自动返修案例。
+
+实施与恢复证据见 `docs/M14_AUTOMATIC_MEDIA_QA_REPAIR_IMPLEMENTATION.md`。
+
+## M13.1 / M14.1：动态镜头与动作质量收口
+
+- exact-main 视频默认使用 Seedance 生成无产品的动态场景/人物/动作，Product Plate 与
+  字幕继续本地确定性合成。
+- Seedance 4–15 秒约束已进入 Provider Registry；短故事镜头在 Provider 端扩展后按
+  Production Bible 时长裁剪。
+- 动态镜头高冻结比例直接失败；VLM 必须验证计划动作是否完成。
+- 已通过真实变化 fake async MP4、重启不重复提交、冻结 shot-scoped repair 和完整
+  分发/Display Gate。
+- 状态：`DONE_IN_PILOT_REF_UNPUBLISHED_LIVE_ACCEPTANCE_PENDING`。
+- 下一门禁：外部生成一组去敏动态 Seedance shots，本地合成/QA/返修并由用户验收。
+- 证据：`docs/M13_1_DYNAMIC_SHOT_PRODUCTION_IMPLEMENTATION.md`。
 
 ## M15：Desktop 内部试用版
 
-- 产品 onboarding、模型配置状态和 Sidecar 诊断。
-- 对话主入口与三个默认审阅节点。
-- Tasks、Creative Review、Assets、Learning、Settings 连续体验。
-- Windows 可安装内部测试包。
-- 非技术运营人员无需 CLI/Prompt 独立完成完整任务。
+状态：`PILOT_REF_AVAILABLE_UNPUBLISHED_INSTALLER_REBUILD_AND_OPERATOR_ACCEPTANCE_PENDING`。
+
+已实现：
+
+- 产品 onboarding；描述只进入 Evidence/Draft，不自动确认 Canonical Brain。
+- Overview 自然语言任务与预设、Tasks 无 task ID 恢复、产品事实/创意方向/成片质量三个审阅节点。
+- Overview、Tasks、Review、Assets、Learning、Settings 六视图连续体验。
+- `DOUBAO_API_KEY` 优先级、real-provider、ffmpeg/ffprobe 和可选 XHS/Douyin 的无密钥诊断。
+- workspace、`zh-CN` 和 cleanup 隔离；cleanup RED→GREEN 修复了旧 DOM 仍可触发聊天的问题。
+- 分发扫描、版本/哈希、enabled user-plugin 离线安装和 Windows NSIS Desktop 壳构建通过。
+- 本地“打包壳 + 当前 worktree runtime + 隔离 user plugin”后端、bundle、诊断和 onboarding 通过。
+
+剩余完成门禁：
+
+- 方案 A 已完成：实现提交 `25e26df` 已推送到可获取的 origin pilot ref。
+- 重新构建并验证 install stamp 和 fresh-install；不得把只含 Desktop 壳且指向旧 HEAD 的 EXE 称为 M15 独立安装包。
+- 一名内部运营人员在可复现安装形态中完成 onboarding → 自然语言任务 → 三节点审阅 → 中断恢复 → 反馈/学习全链。
+- 由产品/内容负责人记录可发布质量 Rubric 和接受/修改结论。
+- 证据与操作脚本：`docs/M15_DESKTOP_INTERNAL_PILOT_IMPLEMENTATION.md`。
+
+M14 真实动态样片 Gate 与 M15 人工可用性 Gate 相互独立；不能用其中一个替代另一个。
 
 ## M16：母创意与受控规模化
 
@@ -106,12 +204,16 @@
 
 ## 主要风险
 
-- 原脏工作区作为证据保留；新分支尚未 push，远端不是最新恢复源。
+- 原脏工作区作为证据保留；重建 pilot 分支已 push，main 和正式发布线保持不变。
 - `ctx.llm` 桥接限制使部分深度灵感摘要退化。
-- exact-main 依赖外部 ffmpeg，且当前模板质量不足。
+- M13 当前依赖本机其他软件内置 ffmpeg/ffprobe，Desktop 分发尚未自带媒体工具。
 - 普通生成式视频无法保证包装中文文字。
-- 当前 Review 主要是审阅包，自动 QA/返修尚未实现。
+- M14 默认没有真实 OCR/VLM adapter 时会进入 HUMAN_REVIEW；真实阈值尚未校准。
 - Product Brain 学习数组仍混合产品、渠道和制作经验。
+- M12 的真实创意质量仍依赖所配置 LLM；离线 fixture 只证明契约和编排，不证明最终媒体质量。
+- 临时分发已能包含未提交第一方源码并通过离线安装，但 dirty build 仍不能正式发布。
+- M13 fixture 证明媒体生产边界，不证明真实 Provider shot 的创意质量或异步恢复。
+- M14 fixture 证明 QA/返修契约和隔离，不证明真实 VLM 对包装、文字和连续性的稳定判断。
 
 ## 明确暂不开发
 

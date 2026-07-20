@@ -5,10 +5,22 @@
 ## Goal and current boundary
 
 - 目标：把优秀运营人员的产品理解、灵感研究、创意决策、分镜制作、模型调用、质量筛选和反馈复盘，沉淀为围绕具体产品长期工作的专业 AI 创意生产系统。
-- 已提交基线：M9.1 通用 Desktop Plugin SDK + plugin-owned UI（实现提交 `83b4e8f`），尚未 push/release。
-- 当前重建分支：`product-creative-rebaseline-20260716`，基础 HEAD `d7d6ec0bf5a4ae9a1bc2377db668ed07a8a87c0b`。原 `product-creative-runtime` 脏工作区只作受保护证据，不再作为开发基线。
+- 已提交基线：M9.1 `83b4e8f`；M11–M15 实现与测试提交 `25e26df`。分支 `product-creative-rebaseline-20260716` 已推送到 origin；未合并 main、未 tag、未 release。
+- 当前重建分支：`product-creative-rebaseline-20260716`；历史重建起点 `d7d6ec0bf5a4ae9a1bc2377db668ed07a8a87c0b`。进入项目时运行 `git rev-parse HEAD`，不得依赖文档中的旧 HEAD。原 `product-creative-runtime` 脏工作区只作受保护证据，不再作为开发基线。
 - 当前基线：M10.1 Live 能力已选择性迁移并通过定向测试；周十五产品已建立严格证据优先 workspace。技术链路可运行，但现有样片的创意质量与包装生成质量不合格，不能记为产品完成。
-- 当前 MVP：M11 专业创意工作流与质量门禁。真实生成前必须存在有效 Creative Decision、剧情/分镜和 Production Bible；生成后质量闭环在 M14 完成。
+- 当前 MVP 状态：M13.1/M14.1 动态镜头生产与动作质量门禁已达到
+  `DONE_IN_PILOT_REF_UNPUBLISHED_LIVE_GATE_AND_USER_ACCEPTANCE_PENDING`；
+  M15 Desktop 内部试用为
+  `PILOT_REF_AVAILABLE_UNPUBLISHED_INSTALLER_REBUILD_AND_OPERATOR_ACCEPTANCE_PENDING`。
+- M15 已提供首产品 onboarding、自然语言任务入口、无 task ID 恢复、三个运营审阅节点、
+  安全环境诊断、workspace/zh-CN/cleanup 隔离、离线插件安装和 Windows NSIS 桌面壳构建。
+  本地“打包桌面壳 + runtime + 隔离 user plugin”试运行后端通过；包含 M15 的 origin pilot ref
+  已可获取，但旧薄安装器的 install stamp 仍指向 `0aa9563`，必须重建并完成 fresh-install 验证。
+- 当前两个独立门禁：M14 本地 Gate 已通过且用户已明确授权，但 Codex 租户级策略禁止把 workspace
+  产品图片和提示词发送给外部 Provider；不得绕过。已有真实媒体已形成一条 `REPAIR` 案例，
+  仍缺真实 QA PASS 和返修后生成；M15 仍缺指向新 pilot ref 的安装器验证和内部运营全链试用。M14 执行与恢复真源为
+  `docs/M14_LIVE_GATE_20260717.md`，M15 实施与人工脚本真源为
+  `docs/M15_DESKTOP_INTERNAL_PILOT_IMPLEMENTATION.md`。
 - 暂不做：Theme Brain、GEO/自动发帖、自动投流/效果分析、无边界多 Agent 群、完整创作画布、云/多租户扩展，除非用户批准。
 
 ## Key paths and stack
@@ -36,10 +48,13 @@ npm.cmd --prefix apps/desktop run build
 - Product Brain 写回、付费 provider、外部发布、核心素材变更必须确认。
 - 外部信息只能进入 evidence/inspiration/proposal；未确认不得成为 Canonical Product Brain。任务授权永不包含 Brain 写回。
 - Product Brain 是产品真实性和长期认知底座，不等于完整创作能力；Creative Director、Production Engine、Evaluator & Learning 必须分别有可验证产物和门禁。
+- 业务 Skill 只承载稳定方法，不保存具体产品事实；Skill 输出必须经过 Schema、artifact hash、确定性 Gate 和持久化审计，LLM PASS 不能覆盖包装、合规、授权或素材硬失败。
+- 生产环境没有可用 Business Skill executor 时必须 fail closed，禁止回退为伪装成专业创意的固定剧情；离线 fixture 只能用于测试。
 - 不得在 `selected_idea` 为空、剧情/分镜无效或 Production Bible 缺失时调用真实生成；不得把硬编码通用字幕模板当作剧情视频交付。
 - real provider 还必须显式设置 `PRODUCT_CREATIVE_ENABLE_REAL_PROVIDER=1`；测试与普通开发环境保持关闭。
 - 豆包凭据最高优先读取 `DOUBAO_API_KEY`；硅基流动和 DeepSeek 分别读取 `SILICONFLOW_API_KEY`、`DEEPSEEK_API_KEY`。只记录变量名，禁止输出值。
-- 包装要求不得重绘/保持原始像素时必须走 exact-main 路线；生成式视频只能作为非保真路线，不能以提示词承诺逐像素包装保真。
+- 包装要求不得重绘/保持原始像素时必须走 exact-main 混合路线：视频 Provider 只生成无产品的动态场景/人物/动作，原产品 plate 在本地确定性合成；不得以 Prompt 承诺逐像素包装保真。
+- 普通创作默认使用 Product Brain、本地/历史素材和 Web；XHS/Douyin 仅在用户明确要求平台研究或研究充分性不足时作为可选来源，不得成为生成硬依赖。
 - SQLite 是 durable runtime 真源；媒体/可审阅 artifact 位于 workspace 文件系统。
 - 不输出或提交 API key、token、Cookie、个人数据、workspace DB/artifact。
 - 不清理或覆盖当前脏工作区；始终区分 HEAD 与 worktree。
@@ -52,7 +67,7 @@ npm.cmd --prefix apps/desktop run build
 
 ## Fast handoff index
 
-依次读取：`AGENTS.md`、`docs/PRODUCT_AGENT_DIRECTION.md`、`docs/AI_HANDOFF.md`、`docs/PROJECT_STATE.md`、`docs/MVP_SCOPE.md`、`docs/ARCHITECTURE_CURRENT.md`。本次重建再读 `docs/REBASELINE_AND_CLEANUP_20260716.md`；M0–M8 回顾读 `docs/history/product-creative-legacy/README.md`；周十五严格基线读 `docs/product-bases/zhou-shiwu-honeydew/STRICT_BASELINE.md`；下一实施入口是 `docs/plans/2026-07-16-m11-professional-creative-workflow-plan.md`。
+依次读取：`AGENTS.md`、`docs/PRODUCT_AGENT_DIRECTION.md`、`docs/AI_HANDOFF.md`、`docs/PROJECT_STATE.md`、`docs/MVP_SCOPE.md`、`docs/ARCHITECTURE_CURRENT.md`。本次重建再读 `docs/REBASELINE_AND_CLEANUP_20260716.md`；M0–M8 回顾读 `docs/history/product-creative-legacy/README.md`；周十五严格基线读 `docs/product-bases/zhou-shiwu-honeydew/STRICT_BASELINE.md`；M11 实现读 `docs/M11_PROFESSIONAL_CREATIVE_WORKFLOW_IMPLEMENTATION.md`，用户验收证据读 `docs/reviews/M11_ZHOU_SHIWU_CREATIVE_PACK_REVIEW.md`；M12 实现与恢复读 `docs/M12_PROFESSIONAL_BUSINESS_SKILLS_IMPLEMENTATION.md`；M13 媒体生产读 `docs/M13_RELIABLE_MEDIA_PRODUCTION_IMPLEMENTATION.md`；M13.1 动态镜头、冻结与动作门禁读 `docs/M13_1_DYNAMIC_SHOT_PRODUCTION_IMPLEMENTATION.md`；M14 QA 读 `docs/M14_AUTOMATIC_MEDIA_QA_REPAIR_IMPLEMENTATION.md`，真实执行和中断恢复读 `docs/M14_LIVE_GATE_20260717.md`；M15 Desktop 内部试用读 `docs/M15_DESKTOP_INTERNAL_PILOT_IMPLEMENTATION.md`。当前先重建并验证指向 origin pilot ref 的 M15 安装形态，再完成人工全链试用；M14 真实动态样片 Gate 继续独立保留。
 
 ---
 

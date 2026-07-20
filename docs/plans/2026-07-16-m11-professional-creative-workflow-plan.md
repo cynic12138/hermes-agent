@@ -4,7 +4,7 @@
 - 前置基线：M10.1 Live 技术链路可运行；真实样片创意质量未通过
 - 开发方式：方案 1，继续在 Hermes 仓库内开发 `product_creative` 插件
 - 首条纵向验收：周十五产品剧情短视频
-- 状态：`READY_FOR_IMPLEMENTATION`
+- 状态：`DONE_IN_WORKTREE_UNCOMMITTED_UNPUBLISHED`
 
 ## 1. 本阶段解决什么
 

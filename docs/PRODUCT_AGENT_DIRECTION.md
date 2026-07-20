@@ -4,8 +4,9 @@
 - 修订日期：2026-07-16
 - 状态：项目长期方向基线
 - 适用范围：`hermes-agent/.hermes/plugins/product_creative`
-- 事实基线：重建分支 `product-creative-rebaseline-20260716`，基础 HEAD `d7d6ec0bf5a4ae9a1bc2377db668ed07a8a87c0b`
-- 当前实现状态：M10.1 Live 技术链路已选择性迁移并验证；创作质量未通过；下一开发任务为 M11 专业创意工作流与质量门禁
+- 事实基线：重建分支 `product-creative-rebaseline-20260716`，历史重建起点 `d7d6ec0bf5a4ae9a1bc2377db668ed07a8a87c0b`，当前 HEAD `0aa95637213f02eca2ef8f619daaf771150a7e11`
+- 当前实现状态：M14 自动媒体 QA、返修与学习质量已达到
+  `DONE_IN_WORKTREE_UNCOMMITTED_UNPUBLISHED_LIVE_GATE_AND_USER_ACCEPTANCE_PENDING`
 
 本文档是 Product Creative 后续产品设计、架构、路线图和验收的最高项目级方向依据。历史 M0–M10 文档仍用于恢复实现证据，但如果其未来设想与本文档冲突，以本文档为准。
 
@@ -385,6 +386,11 @@ flowchart TD
 - 抖音：前五秒画面、第一句话、声音、节奏、冲突、转折和完整口播结构。
 - 历史库：公司已经做过的创意、失败方向和可复用资产。
 
+默认顺序是 Product Brain、本地/历史素材和普通 Web。小红书与抖音不是每次创作的
+固定步骤，也不是生成视频的硬依赖；只有用户明确要求平台专项研究，或 Research
+Sufficiency 判定普通来源不足时才申请对应 Cookie/抓取授权。任一平台不可用时应降级到
+其他来源并明确 freshness，不阻断已经具备充分产品与创意上下文的生产任务。
+
 实现形态：统一 Research Workflow + 来源 Adapter；复杂综合可以使用只读 Worker。
 
 ### 7.5 创意策略师
@@ -709,6 +715,8 @@ Desktop 是内部运营人员的正式产品入口，Hermes 对话是主操作�
 
 目标：让任何真实生成都必须建立在完整、可检查的创意链路上。
 
+当前状态：`DONE_IN_WORKTREE_UNCOMMITTED_UNPUBLISHED`。实现和恢复细节见 `docs/M11_PROFESSIONAL_CREATIVE_WORKFLOW_IMPLEMENTATION.md`，用户验收证据见 `docs/reviews/M11_ZHOU_SHIWU_CREATIVE_PACK_REVIEW.md`。
+
 实施：
 
 - 引入 Creative Task Brief、Grounding Pack、Creative Candidates、Creative Decision 和 Production Bible。
@@ -727,6 +735,9 @@ Desktop 是内部运营人员的正式产品入口，Hermes 对话是主操作�
 
 目标：把优秀运营人员的工作方法沉淀为可测试的专业能力。
 
+当前状态：`DONE_IN_WORKTREE_UNCOMMITTED_UNPUBLISHED`。实施和恢复细节见
+`docs/M12_PROFESSIONAL_BUSINESS_SKILLS_IMPLEMENTATION.md`。
+
 实施：
 
 - 建立任务导演、研究、创意策略、创意评审、编剧、分镜、卡审和学习分析 Skills。
@@ -744,6 +755,9 @@ Desktop 是内部运营人员的正式产品入口，Hermes 对话是主操作�
 
 目标：把高质量创意转化为可执行、可局部重做的图片和视频生产方案。
 
+当前状态：`DONE_IN_WORKTREE_UNCOMMITTED_UNPUBLISHED_LIVE_GATE_PENDING`。
+实施和恢复细节见 `docs/M13_RELIABLE_MEDIA_PRODUCTION_IMPLEMENTATION.md`。
+
 实施：
 
 - Production Bible 覆盖角色、场景、镜头、素材、音频、字幕和连续性。
@@ -758,9 +772,17 @@ Desktop 是内部运营人员的正式产品入口，Hermes 对话是主操作�
 - 剧情、人物和场景仍可使用生成模型完成。
 - 单镜头失败可以重做而不重复整条费用。
 
+当前已完成上述离线 Gate：自然语言任务可以生成 Dependency Report、Product Plate、
+逐镜头 Plan、Shot Results、确定性字幕和真实本地 MP4。真实豆包/Seedance 的异步
+逐镜头恢复仍是独立 Live Gate，不得用 fixture 冒充。
+
 ### M14：自动质检、返修与学习质量
 
 目标：生成文件不再等同于完成，系统能主动发现和处理失败。
+
+当前状态：
+`DONE_IN_WORKTREE_UNCOMMITTED_UNPUBLISHED_LIVE_GATE_AND_USER_ACCEPTANCE_PENDING`。
+实施与恢复细节见 `docs/M14_AUTOMATIC_MEDIA_QA_REPAIR_IMPLEMENTATION.md`。
 
 实施：
 
@@ -775,6 +797,10 @@ Desktop 是内部运营人员的正式产品入口，Hermes 对话是主操作�
 - 明显乱码、包装错误和空洞模板不能被自动标记为可发布。
 - 用户反馈能指导当前返修。
 - 未确认 Proposal 不改变长期 Brain。
+
+当前本地结果已经实现不可变 QA Report、局部 Repair Decision、人工 Override、最多两轮
+自动返修、自然语言恢复、Desktop 审阅和 Learning evidence；真实 VLM/Provider Live Gate
+与用户亲自验收仍待完成。
 
 ### M15：Desktop 内部试用版
 
@@ -881,20 +907,29 @@ Desktop 是内部运营人员的正式产品入口，Hermes 对话是主操作�
 
 ## 15. 当前下一任务
 
-当前不应立即建设完整多 Agent 系统，也不应继续优化 exact-main 通用模板。
+M14 已在当前 worktree 完成技术、字幕/OCR、包装保真、剧情连续性 QA，不可变 QA
+Report、只返修失败镜头、最多两轮自动修复、人工确认审阅、Learning evidence、Desktop
+投影和离线分发安装，并已标记为
+`DONE_IN_WORKTREE_UNCOMMITTED_UNPUBLISHED_LIVE_GATE_AND_USER_ACCEPTANCE_PENDING`。
 
-重建基线完成后的下一开发任务是：
+当前下一门禁是：
 
-> M11 专业创意工作流与质量门禁。
+> M13/M14 联合真实 Provider/VLM Live Gate 与用户质量验收。
 
-第一批改动只解决：
+本门禁只验证：
 
-- 将现有失败视频和用户反馈固化为失败样本。
-- 定义 Creative Task Brief、Creative Candidates、Creative Decision、Production Bible 和 QA Report。
-- 让 Goal Planner 依赖这些产物推进。
-- 阻止空 `selected_idea`、空灵感、空剧情和通用字幕模板进入真实视频生成。
-- 用“帮我做一个今天能发的周十五产品视频”完成真实 Hermes 自然语言离线 E2E。
+- 真实豆包/Seedance 逐镜头异步提交、轮询、下载和重启恢复。
+- 真实 VLM/OCR 对包装、文字和人物/场景连续性的可诊断判断。
+- 自动返修仍只重做失败镜头且不重复已成功付费调用。
+- 修复后完整复检，并由用户亲自验收一条 PASS 和一条自动返修案例。
+- Canonical Product Brain 在未单独确认时保持不变。
 
-它完成后，项目才进入专业业务 Skills 和创意导演能力的开发。
+Live Gate 完成后进入 M15 Desktop 内部试用版。本阶段不包含自动发布、自动投流、
+矩阵生产或大型时间线编辑器；未经单独授权不执行真实 Provider、提交或推送。
 
-详细实施规格见 `docs/plans/2026-07-16-m11-professional-creative-workflow-plan.md`。
+M11 实施与验收见
+`docs/M11_PROFESSIONAL_CREATIVE_WORKFLOW_IMPLEMENTATION.md` 和
+`docs/reviews/M11_ZHOU_SHIWU_CREATIVE_PACK_REVIEW.md`；M12 实施与恢复见
+`docs/M12_PROFESSIONAL_BUSINESS_SKILLS_IMPLEMENTATION.md`；M13 实施与恢复见
+`docs/M13_RELIABLE_MEDIA_PRODUCTION_IMPLEMENTATION.md`；M14 实施与恢复见
+`docs/M14_AUTOMATIC_MEDIA_QA_REPAIR_IMPLEMENTATION.md`。
