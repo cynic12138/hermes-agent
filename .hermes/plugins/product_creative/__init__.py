@@ -13,6 +13,10 @@ from .capabilities.content.llm_service import configure_llm as configure_generat
 from .capabilities.inspiration.llm_service import configure_llm as configure_inspiration_llm
 from .capabilities.learning.result_evaluation_service import configure_llm as configure_self_iteration_llm
 from .runtime.decision_service import configure_llm as configure_decision_llm
+from .runtime.business_skills import (
+    configure_business_skill_llm,
+    register_business_skills,
+)
 from .tools import register_tools
 
 
@@ -22,11 +26,13 @@ def register(ctx) -> None:
         configure_inspiration_llm(ctx.llm)
         configure_self_iteration_llm(ctx.llm)
         configure_decision_llm(ctx.llm)
+        configure_business_skill_llm(ctx.llm)
     except Exception:
         configure_generator_llm(None)
         configure_inspiration_llm(None)
         configure_self_iteration_llm(None)
         configure_decision_llm(None)
+        configure_business_skill_llm(None)
     register_tools(ctx)
     operator_skill = (
         Path(__file__).resolve().parent
@@ -43,6 +49,7 @@ def register(ctx) -> None:
                 "preferring product_workflow_run for product-centered workflows."
             ),
         )
+    register_business_skills(ctx)
     ctx.register_cli_command(
         name="product",
         help="Product Creative workflows",

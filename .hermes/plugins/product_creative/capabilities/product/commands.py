@@ -160,7 +160,7 @@ def _handle_product_workflow_run(args: Dict[str, Any], **_kw: Any) -> str:
             a.get("analysis") or a.get("analysis_id") or "",
             int(a.get("max_steps") or 5),
             a.get("task_id") or "",
-            a.get("autonomy_mode") or "adaptive",
+            a.get("autonomy_mode") or "",
             a.get("authorization_id") or "",
         )
 

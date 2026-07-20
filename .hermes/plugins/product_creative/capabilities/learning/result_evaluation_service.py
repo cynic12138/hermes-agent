@@ -56,7 +56,10 @@ def _parse_json_text(value: str) -> Dict[str, Any]:
     return payload if isinstance(payload, dict) else {}
 
 def _evaluation_instructions() -> str:
-    return """
+    from ...runtime.business_skills import load_business_skill_catalog
+
+    skill = load_business_skill_catalog()["learning-analyst"]
+    return f"""
 你是 Product Creative 的结果评审智能体。你的任务不是夸赞生成结果，而是判断真实图片/视频结果是否应该影响 Product Brain。
 
 输出 JSON，字段必须包含：
@@ -74,6 +77,10 @@ def _evaluation_instructions() -> str:
 - 成功规律可写入 learning.successful_patterns。
 - 失败规律写入 learning.failed_patterns。
 - 不确定或可能改变定位的内容 risk_level 设为 medium 或 high。
+
+以下是本次必须遵守的版本化业务 Skill（{skill.name} v{skill.version}）：
+
+{skill.body}
 """
 
 def _fallback_updates(result: Dict[str, Any], feedback: Dict[str, Any]) -> List[Dict[str, Any]]:

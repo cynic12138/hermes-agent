@@ -1,0 +1,27 @@
+{
+  "name": "compliance-guard",
+  "version": "1.0.0",
+  "stage": "compliance_guard",
+  "input_schemas": [
+    "product_creative.product_grounding_pack.v1",
+    "product_creative.creative_decision.v1",
+    "product_creative.story_package.v1",
+    "product_creative.production_bible.v1"
+  ],
+  "output_schemas": [
+    "product_creative.qa_report.v1"
+  ],
+  "tool_allowlist": [
+    "artifact_read",
+    "policy_read",
+    "material_read"
+  ],
+  "failure_codes": [
+    "deterministic_rule_failed",
+    "unsupported_claim",
+    "implied_high_risk_claim",
+    "packaging_altered",
+    "sensitive_use_depicted",
+    "evidence_insufficient"
+  ]
+}

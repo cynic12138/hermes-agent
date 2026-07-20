@@ -11,7 +11,11 @@ from .provider_ports import GenerationProviderGateway
 class DefaultGenerationProviderGateway:
     @staticmethod
     def _require_mock(provider: str, mode: str = "") -> None:
-        is_mock = provider.lower().startswith("mock") or mode.lower() == "mock"
+        is_mock = (
+            provider.lower().startswith("mock")
+            or provider.lower() == "local-fixture"
+            or mode.lower() in {"mock", "fixture"}
+        )
         if not is_mock and os.environ.get("PRODUCT_CREATIVE_ENABLE_REAL_PROVIDER") != "1":
             raise PermissionError("Real provider execution is disabled; use mock mode/provider.")
 
@@ -32,10 +36,23 @@ class DefaultGenerationProviderGateway:
 
         return create_video_execution_policy(product_id, payload_id, provider, mode, confirmed, note)
 
-    def prepare_payload(self, product_id: str, brief_id: str, provider: str, kind: str) -> Dict[str, Any]:
+    def prepare_payload(
+        self,
+        product_id: str,
+        brief_id: str,
+        provider: str,
+        kind: str,
+        production_bible: str = "",
+    ) -> Dict[str, Any]:
         from .provider_payloads import prepare_provider_payload
 
-        return prepare_provider_payload(product_id, brief_id, provider, kind)
+        return prepare_provider_payload(
+            product_id,
+            brief_id,
+            provider,
+            kind,
+            production_bible,
+        )
 
     def submit_image(self, product_id: str, payload_id: str, provider: str, mode: str, count: int) -> Dict[str, Any]:
         self._require_mock(provider, mode)
@@ -64,6 +81,43 @@ class DefaultGenerationProviderGateway:
         from .provider_video_tasks import import_video_result
 
         return import_video_result(product_id, task_id, url, provider, note, download)
+
+    def prepare_media_shot(
+        self,
+        product_id: str,
+        plan_id: str,
+        shot_id: str,
+        provider: str,
+        media_kind: str,
+    ) -> Dict[str, Any]:
+        from .provider_shots import prepare_media_shot
+
+        return prepare_media_shot(
+            product_id,
+            plan_id,
+            shot_id,
+            provider,
+            media_kind,
+        )
+
+    def submit_media_shot(
+        self,
+        product_id: str,
+        payload_id: str,
+        provider: str,
+        mode: str,
+        execution_policy_id: str = "",
+    ) -> Dict[str, Any]:
+        self._require_mock(provider, mode)
+        from .provider_shots import submit_media_shot
+
+        return submit_media_shot(
+            product_id,
+            payload_id,
+            provider,
+            mode,
+            execution_policy_id,
+        )
 
 
 _gateway: GenerationProviderGateway = DefaultGenerationProviderGateway()

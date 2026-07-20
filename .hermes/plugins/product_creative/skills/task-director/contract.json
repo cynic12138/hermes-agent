@@ -1,0 +1,21 @@
+{
+  "name": "task-director",
+  "version": "1.0.0",
+  "stage": "task_director",
+  "input_schemas": [
+    "product_creative.creative_task.v1"
+  ],
+  "output_schemas": [
+    "product_creative.creative_task_brief.v1"
+  ],
+  "tool_allowlist": [
+    "task_state_read",
+    "product_grounding_read"
+  ],
+  "failure_codes": [
+    "ambiguous_product",
+    "missing_deliverable",
+    "conflicting_constraints",
+    "authorization_unknown"
+  ]
+}

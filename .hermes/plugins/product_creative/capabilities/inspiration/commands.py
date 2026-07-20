@@ -14,6 +14,12 @@ from ...runtime.errors import classify_exception, error_result, record_runtime_e
 from ..models import CommandDescriptor
 from . import schemas
 
+
+def _int_with_default(args: Dict[str, Any], key: str, default: int) -> int:
+    value = args.get(key)
+    return default if value is None or value == "" else int(value)
+
+
 def _tool_ok(fn, args: Dict[str, Any]) -> str:
     try:
         return json_text(fn(args))
@@ -41,9 +47,9 @@ def _handle_product_external_source_collect(args: Dict[str, Any], **_kw: Any) ->
             a.get("url") or "",
             a.get("sidecar_url") or "",
             int(a.get("wait_seconds") or 90),
-            int(a.get("transcribe_limit") or 1),
+            _int_with_default(a, "transcribe_limit", 1),
             bool(a.get("auto_browser_cookie")),
-            int(a.get("analyze_first5_limit") or 1),
+            _int_with_default(a, "analyze_first5_limit", 1),
         ),
         args,
     )

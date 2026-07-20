@@ -2,7 +2,7 @@
 
 `product_creative` is a durable, AI-driven Hermes plugin for long-running product content work. It keeps Product Brain versions, workflows, events, receipts, learning rules, and writeback proposals in SQLite while media and large artifacts remain in the product workspace.
 
-M9.1 adds a user-plugin-owned Hermes Desktop review and recovery console. Generation is still started through natural-language Hermes conversations; M10 will add guided generation launch controls.
+M15 extends the user-plugin-owned Hermes Desktop console into a guided internal workbench. Operators can onboard a product, start or resume a natural-language creative task, inspect three review checkpoints, and diagnose the local runtime without using CLI payloads, prompt engineering, or task IDs. Execution still enters the existing Hermes chat/Agent Runtime rather than a parallel frontend workflow.
 
 ## Install
 
@@ -29,15 +29,19 @@ The M9 console uses the active Hermes Desktop workspace. Runtime data belongs to
 
 The user installation under `~/.hermes/plugins/product_creative` contains code only. It does not own product data. Every API request carries the current workspace root, which is canonicalized and scoped with `ContextVar`; the plugin never changes the process-wide working directory.
 
-## M9.1 review console
+## M15 guided Desktop workbench
 
 Open **Product Creative** from the Desktop sidebar or command palette.
 
-- **Overview** shows the current Product Brain version and attention counts.
-- **Tasks** shows durable workflows, steps, events, and provider tasks.
-- **Review queue** accepts or rejects writeback proposals.
+- A workspace with no product shows safe onboarding. Optional descriptions enter Evidence/Draft and never become confirmed Product Brain facts automatically.
+- **Overview** shows Product Brain/readiness, three operator checkpoints, and a natural-language creative task composer.
+- **Tasks** shows durable workflows, steps, events, provider tasks, and one-click natural-language resume without exposing task IDs to operators.
+- **Review queue** separates product truth, creative direction, and final media quality before accepting or rejecting controlled proposals.
 - **Assets** lists registered materials and generated artifacts.
 - **Learning** shows rules and Product Brain history, including controlled revoke and rollback.
+- **Settings** reports credential presence, real-provider readiness, ffmpeg/ffprobe, and optional XHS/Douyin sidecar health without returning secret values.
+
+XHS and Douyin are optional inspiration sources. Their absence does not block normal creation from Product Brain, local/history materials, and Web research. Product images and packaging materials are added through the existing Hermes chat attachment path.
 
 Proposal decisions, Product Brain rollback, rule revoke, workflow retry/cancel, and provider-task refresh all pass through typed commands, policy checks, explicit confirmation, optimistic version checks, receipts, and audit events. Rollback creates a new immutable Brain version; it never rewrites history.
 

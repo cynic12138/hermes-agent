@@ -1,0 +1,25 @@
+{
+  "name": "learning-analyst",
+  "version": "1.0.0",
+  "stage": "learning_analyst",
+  "input_schemas": [
+    "product_creative.creative_task.v1",
+    "product_creative.result_feedback.v1",
+    "product_creative.qa_report.v1"
+  ],
+  "output_schemas": [
+    "product_creative.learning_proposal.v1"
+  ],
+  "tool_allowlist": [
+    "artifact_read",
+    "feedback_read",
+    "history_search",
+    "policy_read"
+  ],
+  "failure_codes": [
+    "feedback_target_ambiguous",
+    "samples_conflict",
+    "durable_evidence_insufficient",
+    "knowledge_layer_conflict"
+  ]
+}

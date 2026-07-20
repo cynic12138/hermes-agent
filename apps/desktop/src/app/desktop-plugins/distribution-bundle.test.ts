@@ -68,7 +68,7 @@ it('loads the release bundle through registry, route, mount, and API host bounda
     previewMedia: vi.fn(async () => undefined),
     workspaceRoot: 'C:/offline-workspace'
   })
-  await vi.waitFor(() => expect(rootElement.textContent).toContain('No Product Creative products'))
+  await vi.waitFor(() => expect(rootElement.textContent).toContain('Build your first product understanding'))
   expect(api).toHaveBeenCalledWith(expect.objectContaining({ path: '/api/plugins/product_creative/v1/products' }))
   if (typeof cleanup === 'function') cleanup()
   expect(rootElement.innerHTML).toBe('')

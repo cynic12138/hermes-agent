@@ -18,6 +18,14 @@ INSTALL_SPEC = importlib.util.spec_from_file_location("product_creative_distribu
 assert INSTALL_SPEC and INSTALL_SPEC.loader
 installer = importlib.util.module_from_spec(INSTALL_SPEC)
 INSTALL_SPEC.loader.exec_module(installer)
+EXPORT_SCRIPT = (
+    ROOT
+    / ".hermes"
+    / "plugins"
+    / "product_creative"
+    / "scripts"
+    / "export_distribution.ps1"
+)
 
 
 def _distribution(tmp_path: Path) -> Path:
@@ -74,3 +82,9 @@ def test_offline_probe_pythonpath_keeps_repo_and_installed_dependencies(monkeypa
     values = installer._probe_pythonpath([str(extra_site), "", str(system_site)]).split(installer.os.pathsep)
 
     assert values == [str(installer.REPO_ROOT), str(extra_site), str(system_site), str(user_site)]
+
+
+def test_export_distribution_includes_uncommitted_first_party_sources():
+    script = EXPORT_SCRIPT.read_text(encoding="utf-8")
+
+    assert "ls-files --cached --others --exclude-standard" in script

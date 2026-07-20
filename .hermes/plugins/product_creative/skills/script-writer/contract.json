@@ -1,0 +1,25 @@
+{
+  "name": "script-writer",
+  "version": "1.0.0",
+  "stage": "script_writer",
+  "input_schemas": [
+    "product_creative.product_grounding_pack.v1",
+    "product_creative.creative_candidate.v1",
+    "product_creative.creative_decision.v1"
+  ],
+  "output_schemas": [
+    "product_creative.story_package.v1"
+  ],
+  "tool_allowlist": [
+    "artifact_read",
+    "material_read",
+    "policy_read"
+  ],
+  "failure_codes": [
+    "direction_unapproved",
+    "conflict_missing",
+    "decorative_product_role",
+    "unconfirmed_claim_dependency",
+    "ending_without_payoff"
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "name": "storyboard-director",
+  "version": "1.0.0",
+  "stage": "storyboard_director",
+  "input_schemas": [
+    "product_creative.creative_task_brief.v1",
+    "product_creative.product_grounding_pack.v1",
+    "product_creative.story_package.v1"
+  ],
+  "output_schemas": [
+    "product_creative.production_bible.v1"
+  ],
+  "tool_allowlist": [
+    "artifact_read",
+    "material_read",
+    "provider_capability_read",
+    "policy_read"
+  ],
+  "failure_codes": [
+    "duration_unallocatable",
+    "material_missing",
+    "packaging_strategy_conflict",
+    "product_reveal_timing_impossible",
+    "narrative_function_missing"
+  ]
+}

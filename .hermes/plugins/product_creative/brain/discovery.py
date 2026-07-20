@@ -63,6 +63,7 @@ def assess_product_readiness(
     request: CreativeTaskRequest,
     *,
     task_id: str = "",
+    task_context: Dict[str, Any] | None = None,
 ) -> ProductReadinessReport:
     """Derive and persist task readiness without changing Canonical Product Brain."""
 
@@ -72,8 +73,28 @@ def assess_product_readiness(
     material = _material_for_current_packaging(base.name)
     basic = state.get("basic") if isinstance(state.get("basic"), dict) else {}
     product_name = _first_text((state.get("name"), basic.get("name")))
-    sku = _first_text((basic.get("sku"), basic.get("sku_name"), basic.get("specification"), state.get("sku")))
-    claims = _claim_boundaries(state)
+    canonical_sku = _first_text(
+        (
+            basic.get("sku"),
+            basic.get("sku_name"),
+            basic.get("specification"),
+            state.get("sku"),
+        )
+    )
+    canonical_claims = _claim_boundaries(state)
+    context = task_context if isinstance(task_context, dict) else {}
+    task_sku = _text(context.get("product_sku"))
+    task_claims = (
+        context.get("claim_boundaries")
+        if isinstance(context.get("claim_boundaries"), dict)
+        else {}
+    )
+    sku = task_sku or canonical_sku
+    claims = task_claims or canonical_claims
+    claim_sources = (
+        [f"task-context:{task_id}:claim_boundaries"] if task_claims else []
+    )
+    sku_sources = [f"task-context:{task_id}:product_sku"] if task_sku else []
     needs_product_visual = any(item in request.deliverables for item in ("image", "video"))
     understanding_only = request.goal_kind == "understanding"
 
@@ -91,6 +112,7 @@ def assess_product_readiness(
             label="可用与禁用表述",
             status="CONFIRMED" if claims else "UNKNOWN",
             value=claims or None,
+            source_ids=claim_sources,
             blocking=True,
             impact="无法判断生成内容是否包含未经确认的产品表述。",
         ),
@@ -99,6 +121,7 @@ def assess_product_readiness(
             label="产品 SKU/规格",
             status="CONFIRMED" if sku else "UNKNOWN",
             value=sku or None,
+            source_ids=sku_sources,
             blocking=True,
             impact="无法确认生成内容对应的具体商品版本。",
         ),
@@ -156,6 +179,35 @@ def assess_product_readiness(
     )
     write_json(path, report.model_dump(mode="json"))
     return report
+
+
+def task_context_value(field_key: str, message: str) -> Any:
+    """Parse a user-confirmed value that is scoped only to one Creative Task."""
+
+    normalized = message.strip()
+    if field_key == "claim_boundaries":
+        allowed, forbidden = _claim_lists(normalized)
+        if not allowed and not forbidden:
+            raise ValueError(
+                "task-local claim boundaries must include allowed or forbidden expressions"
+            )
+        return {"allowed": allowed, "forbidden": forbidden}
+    if field_key in {"product_sku", "product_identity"}:
+        value = re.sub(
+            r"^(?:仅|只)?用于本次任务[，,。；;\s]*",
+            "",
+            normalized,
+        )
+        value = re.sub(
+            r"^(?:不要|不)?写入\s*Product Brain[，,。；;\s]*",
+            "",
+            value,
+            flags=re.IGNORECASE,
+        )
+        if not value:
+            raise ValueError(f"task-local field '{field_key}' requires a value")
+        return value
+    raise ValueError(f"field '{field_key}' cannot be stored as task-local context")
 
 
 def _claim_lists(message: str) -> tuple[List[str], List[str]]:

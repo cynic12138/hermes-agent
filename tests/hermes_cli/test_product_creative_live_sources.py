@@ -64,10 +64,36 @@ def test_windows_env_resolution_reads_machine_scope_when_process_and_user_are_em
     assert provider_registry.env_value("DOUBAO_API_KEY") == "machine-doubao-key"
 
 
+def test_normalize_generic_web_item_preserves_title_and_source_url():
+    from product_creative.capabilities.inspiration import collection_service
+
+    items = collection_service._normalize_import_items(
+        "generic-web",
+        {
+            "title": "Readable source",
+            "url": "https://example.com/article",
+            "text": "useful source text",
+        },
+        1,
+    )
+
+    assert items == [
+        {
+            "source_item_id": "manual-1",
+            "title": "Readable source",
+            "text": "useful source text",
+            "url": "https://example.com/article",
+            "stats": {},
+            "not_product_fact": True,
+        }
+    ]
+
+
 def test_douyin_live_collects_transcript_copy_hook_and_first5_visual_analysis(monkeypatch):
     from product_creative.capabilities.inspiration import collection_service
 
     calls: list[str] = []
+    timeouts: dict[str, int] = {}
 
     def fake_get(url: str, timeout: int = 30):
         calls.append(url)
@@ -79,6 +105,7 @@ def test_douyin_live_collects_transcript_copy_hook_and_first5_visual_analysis(mo
 
     def fake_post(url: str, body: dict, timeout: int = 60):
         calls.append(url)
+        timeouts[url.rsplit("/", 1)[-1]] = timeout
         if url.endswith("/api/search"):
             return {
                 "items": [
@@ -129,6 +156,7 @@ def test_douyin_live_collects_transcript_copy_hook_and_first5_visual_analysis(mo
     assert result["first5_analyzed_count"] == 1
     assert any(url.endswith("/api/video/transcribe-online") for url in calls)
     assert any(url.endswith("/api/video/analyze-first5") for url in calls)
+    assert timeouts["analyze-first5"] > 600
 
 
 def test_douyin_analysis_limits_cap_attempts_even_when_every_remote_call_fails(monkeypatch):
@@ -172,6 +200,49 @@ def test_douyin_analysis_limits_cap_attempts_even_when_every_remote_call_fails(m
     assert len(result["first5_analysis_errors"]) == 5
 
 
+def test_douyin_direct_url_analysis_does_not_depend_on_search_results(monkeypatch):
+    from product_creative.capabilities.inspiration import collection_service
+
+    calls: list[str] = []
+
+    monkeypatch.setattr(
+        collection_service,
+        "_get_json",
+        lambda *_args, **_kwargs: {"status": "ok"},
+    )
+
+    def fake_post(url: str, body: dict, timeout: int = 60):
+        calls.append(url)
+        if url.endswith("/api/search"):
+            raise AssertionError("direct URL analysis must not depend on search")
+        if url.endswith("/api/video/analyze-first5"):
+            assert body["url"] == "https://www.douyin.com/video/7215131522305740084"
+            return {
+                "model": "doubao-seed-2-1-pro-260628",
+                "input_mode": "native_video",
+                "analyzed_seconds": 5,
+                "analysis": {"hook_strength": 91},
+            }
+        raise AssertionError(f"unexpected URL: {url}")
+
+    monkeypatch.setattr(collection_service, "_post_json", fake_post)
+
+    result = collection_service._douyin_live(
+        "http://127.0.0.1:8000",
+        "用户指定视频",
+        1,
+        transcribe_limit=0,
+        analyze_first5_limit=1,
+        source_url="https://www.douyin.com/video/7215131522305740084",
+    )
+
+    assert result["search"]["source"] == "direct_url"
+    assert result["items"][0]["source_item_id"] == "7215131522305740084"
+    assert result["items"][0]["first5_analysis"]["analysis"]["hook_strength"] == 91
+    assert result["first5_analyzed_count"] == 1
+    assert not any(url.endswith("/api/search") for url in calls)
+
+
 def test_external_source_schema_allows_five_real_analysis_results():
     from product_creative.capabilities.inspiration.schemas import (
         PRODUCT_EXTERNAL_SOURCE_COLLECT_SCHEMA,
@@ -185,6 +256,36 @@ def test_external_source_schema_allows_five_real_analysis_results():
         "maximum": 5,
         "default": 1,
     }
+
+
+def test_external_source_tool_preserves_explicit_zero_analysis_limits(monkeypatch):
+    import json
+    from product_creative.capabilities.inspiration import commands
+
+    captured: dict[str, tuple] = {}
+
+    def fake_collect(*args):
+        captured["args"] = args
+        return {"success": True}
+
+    monkeypatch.setattr(commands, "collect_external_source_snapshot", fake_collect)
+
+    result = json.loads(
+        commands._handle_product_external_source_collect(
+            {
+                "product_id": "honeydew",
+                "provider": "douyin-sidecar",
+                "query": "指定视频",
+                "mode": "live",
+                "transcribe_limit": 0,
+                "analyze_first5_limit": 0,
+            }
+        )
+    )
+
+    assert result["success"] is True
+    assert captured["args"][11] == 0
+    assert captured["args"][13] == 0
 
 
 def test_registry_persists_the_user_selected_doubao_models_and_key_priority():

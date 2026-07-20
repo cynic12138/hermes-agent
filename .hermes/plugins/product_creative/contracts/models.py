@@ -72,6 +72,102 @@ class CreativeTaskBrief(ContractModel):
     source: Literal["llm", "rule_fallback", "explicit_action"] = "rule_fallback"
 
 
+def requires_exact_packaging(message: str) -> bool:
+    """Return whether natural language requires immutable packaging/main-image pixels."""
+
+    text = message.strip()
+    direct_markers = (
+        "包装不能变",
+        "包装不变",
+        "不能改变包装",
+        "主图不能变",
+        "不重绘",
+        "不得重绘",
+        "禁止重绘",
+        "原始像素",
+        "逐帧保持",
+        "像素级保持",
+        "保持包装与品牌文字原样",
+        "包装与品牌文字原样",
+        "包装保持原样",
+        "保持包装原样",
+        "包装必须保持原样",
+    )
+    if any(marker in text for marker in direct_markers):
+        return True
+    packaging_subjects = (
+        "包装",
+        "包装外观",
+        "包装文字",
+        "产品外观",
+        "产品文字",
+        "主图",
+    )
+    preservation_constraints = (
+        "不得变化",
+        "不能变化",
+        "不允许变化",
+        "不得改变",
+        "不能改变",
+        "不允许改变",
+        "不要改变",
+        "保持不变",
+        "原样保留",
+        "不得改动",
+        "不能改动",
+        "不允许改动",
+        "不要改动",
+        "不得修改",
+        "不能修改",
+        "不允许修改",
+    )
+    return any(subject in text for subject in packaging_subjects) and any(
+        constraint in text for constraint in preservation_constraints
+    )
+
+
+def requests_text_deliverable(message: str) -> bool:
+    """Distinguish requested copy output from constraints about packaging text."""
+
+    text = message.strip()
+    if any(marker in text for marker in ("文案", "口播", "脚本")):
+        return True
+    if "文字" not in text:
+        return False
+    if any(
+        marker in text
+        for marker in (
+            "不要生成文字",
+            "不生成文字",
+            "禁止生成文字",
+            "无需文字",
+            "不需要文字",
+            "不要文字",
+        )
+    ):
+        return False
+    if any(
+        marker in text
+        for marker in (
+            "生成文字",
+            "写文字",
+            "输出文字",
+            "文字内容",
+            "文字稿",
+            "一段文字",
+            "几段文字",
+            "一些文字",
+        )
+    ):
+        return True
+    if requires_exact_packaging(text) and any(
+        marker in text
+        for marker in ("包装文字", "包装外观和文字", "产品文字", "主图文字")
+    ):
+        return False
+    return True
+
+
 class CreativeTaskRequest(ContractModel):
     """Normalized user goal for a recoverable cross-capability creative task."""
 
@@ -86,7 +182,7 @@ class CreativeTaskRequest(ContractModel):
     def from_message(cls, message: str) -> "CreativeTaskRequest":
         text = message.strip()
         deliverables: List[Literal["text", "image", "video"]] = []
-        if any(marker in text for marker in ("文案", "文字", "口播", "脚本")):
+        if requests_text_deliverable(text):
             deliverables.append("text")
         image_output_requested = any(marker in text for marker in ("图片", "产品图", "生图")) or any(
             marker in text
@@ -104,6 +200,12 @@ class CreativeTaskRequest(ContractModel):
             deliverables.append("image")
         if any(marker in text for marker in ("视频", "短片", "成片")):
             deliverables.append("video")
+        if (
+            not deliverables
+            and any(marker in text for marker in ("抖音", "短视频"))
+            and any(marker in text for marker in ("剧情", "分镜", "创意方案", "方案"))
+        ):
+            deliverables.append("video")
         understanding_only = not deliverables and any(
             marker in text
             for marker in ("了解产品", "了解这个产品", "认识产品", "产品大脑", "建脑", "补充产品资料")
@@ -119,21 +221,7 @@ class CreativeTaskRequest(ContractModel):
             requires_fresh_inspiration=any(
                 marker in text for marker in ("今天", "今日", "最近", "最新", "热点", "节日")
             ),
-            preserve_exact_packaging=any(
-                marker in text
-                for marker in (
-                    "包装不能变",
-                    "包装不变",
-                    "不能改变包装",
-                    "主图不能变",
-                    "不重绘",
-                    "不得重绘",
-                    "禁止重绘",
-                    "原始像素",
-                    "逐帧保持",
-                    "像素级保持",
-                )
-            ),
+            preserve_exact_packaging=requires_exact_packaging(text),
         )
 
 
@@ -201,6 +289,18 @@ class CreativeTaskPlan(ContractModel):
             "AWAITING_FEEDBACK",
         ]
     ] = Field(default_factory=list)
+    artifact_gates: List[
+        Literal[
+            "creative_task_brief",
+            "product_grounding_pack",
+            "research_insight_pack",
+            "creative_candidates",
+            "creative_decision",
+            "story_package",
+            "production_bible",
+            "preflight_qa",
+        ]
+    ] = Field(default_factory=list, max_length=8)
     actions: List[CreativeTaskPlanStep] = Field(default_factory=list, max_length=24)
 
 
@@ -242,8 +342,16 @@ class CreativeTaskRecord(ContractModel):
     authorization_request_id: str = ""
     authorization_id: str = ""
     provider: str = ""
+    task_context: Dict[str, Any] = Field(default_factory=dict)
     selected_materials: List[Dict[str, Any]] = Field(default_factory=list)
     selected_idea: Dict[str, Any] = Field(default_factory=dict)
+    professional_artifact_status: Literal[
+        "legacy_incomplete",
+        "not_started",
+        "in_progress",
+        "complete",
+    ] = "legacy_incomplete"
+    professional_artifacts: Dict[str, Any] = Field(default_factory=dict)
     result_descriptors: List[Dict[str, Any]] = Field(default_factory=list)
     revision_messages: List[str] = Field(default_factory=list)
     artifact_path: str = ""

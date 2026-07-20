@@ -211,10 +211,23 @@ def compact_creative_task_result(task: Any) -> Dict[str, Any]:
         "agent_action_request": agent_action_request,
         "selected_materials": list(task.selected_materials),
         "selected_idea": dict(task.selected_idea),
+        "professional_artifact_status": task.professional_artifact_status,
+        "professional_artifacts": dict(task.professional_artifacts),
         "result_descriptors": list(task.result_descriptors),
         "user_next_message": next_message,
+        "continuation": {
+            "tool": "product_workflow_run",
+            "product_id": task.product_id,
+            "task_id": task.task_id,
+            "must_reuse_task_id": True,
+        },
         "files": {"creative_task": task.artifact_path},
-        "response_guidance": "Answer the user in natural language. Ask only the returned high-value questions; never fill UNKNOWN product facts from assumptions.",
+        "response_guidance": (
+            "Answer the user in natural language. Ask only the returned high-value "
+            "questions; never fill UNKNOWN product facts from assumptions. Every "
+            "continuation MUST call product_workflow_run with continuation.task_id; "
+            "never start a second Creative Task for an answer to these questions."
+        ),
     }
 
 
@@ -242,7 +255,7 @@ def product_agent_turn(
     analysis: str = "",
     max_steps: int = 5,
     task_id: str = "",
-    autonomy_mode: str = "adaptive",
+    autonomy_mode: str = "",
     authorization_id: str = "",
 ) -> Dict[str, Any]:
     resolution: Dict[str, Any] = {}
@@ -289,7 +302,7 @@ def product_agent_turn(
         task = start_creative_task(
             resolved_product_id,
             run_message,
-            autonomy_mode=autonomy_mode or "adaptive",
+            autonomy_mode=autonomy_mode,
             provider=provider,
         )
         compact = compact_creative_task_result(task)

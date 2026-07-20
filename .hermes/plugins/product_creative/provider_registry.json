@@ -1,5 +1,5 @@
 {
-  "schema_version": "product_creative.provider_registry.v0.6.1",
+  "schema_version": "product_creative.provider_registry.v0.6.2",
   "providers": [
     {
       "name": "generic",
@@ -196,7 +196,9 @@
       },
       "limits": {
         "max_prompt_chars": 6000,
-        "max_storyboard_shots": 12
+        "max_storyboard_shots": 12,
+        "min_duration_seconds": 4,
+        "max_duration_seconds": 15
       },
       "adapter_contract": {
         "validate": "required",

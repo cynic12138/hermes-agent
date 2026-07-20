@@ -9,11 +9,33 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 
 ROOT = Path(__file__).resolve().parents[2]
 PLUGIN_PARENT = ROOT / ".hermes" / "plugins"
 if str(PLUGIN_PARENT) not in sys.path:
     sys.path.insert(0, str(PLUGIN_PARENT))
+TEST_DIR = Path(__file__).resolve().parent
+if str(TEST_DIR) not in sys.path:
+    sys.path.insert(0, str(TEST_DIR))
+
+from test_product_creative_m11_artifacts import _m12_offline_skill_executor
+
+
+@pytest.fixture(autouse=True)
+def _configure_m12_offline_skill_runtime_for_m10():
+    from product_creative.runtime.business_skills import (
+        configure_business_skill_executor,
+        configure_business_skill_llm,
+    )
+
+    configure_business_skill_llm(None)
+    configure_business_skill_executor(_m12_offline_skill_executor)
+    try:
+        yield
+    finally:
+        configure_business_skill_executor(None)
 
 
 def _create_mature_video_product(tmp_path):
@@ -85,6 +107,16 @@ def test_exact_packaging_detects_pixel_lock_and_forbidden_redraw_language():
     assert request.preserve_exact_packaging is True
 
 
+def test_exact_packaging_detects_keep_packaging_and_brand_text_unchanged_language():
+    from product_creative.contracts.models import CreativeTaskRequest
+
+    request = CreativeTaskRequest.from_message(
+        "使用当前主图并严格保持包装与品牌文字原样，AI只生成背景和人物"
+    )
+
+    assert request.preserve_exact_packaging is True
+
+
 def test_authorization_blocked_video_can_be_replanned_to_exact_packaging(tmp_path):
     from product_creative.runtime.creative_tasks import (
         _apply_task_constraint_revision,
@@ -111,7 +143,7 @@ def test_authorization_blocked_video_can_be_replanned_to_exact_packaging(tmp_pat
     assert task.revision_messages[-1].startswith("补充硬约束")
     assert "compose_exact_main_video" in actions
     assert "submit_video_generation_task" not in actions
-    assert task.authorization_request_id == ""
+    assert task.authorization_request_id.startswith("authorization-request-")
     assert task.authorization_id == ""
 
 
@@ -231,6 +263,12 @@ def test_product_workflow_run_starts_a_recoverable_task_for_a_natural_language_g
     assert result["deliverables"] == ["video"]
     assert 1 <= len(result["questions"]) <= 3
     assert result["workflow_run_id"] == ""
+    assert result["continuation"] == {
+        "tool": "product_workflow_run",
+        "product_id": "honeydew",
+        "task_id": result["task_id"],
+        "must_reuse_task_id": True,
+    }
 
 
 def test_continuing_a_task_preserves_unknown_without_mutating_canonical_brain(tmp_path):
@@ -481,6 +519,233 @@ def test_discovery_answer_requires_field_confirmation_before_canonical_writeback
     assert confirmed["task_status"] == "NEEDS_INPUT"
 
 
+def test_externally_rejected_field_proposal_releases_the_same_creative_task(tmp_path):
+    from product_creative.capabilities.product.workspace_service import create_product
+    from product_creative.ports.runtime_repositories import product_brains, recovery
+    from product_creative.runtime.agent import product_agent_turn
+    from product_creative.workspace import workspace_scope
+
+    with workspace_scope(tmp_path):
+        create_product("honeydew", "周十五蜂蜜露")
+        started = product_agent_turn(
+            product_id="honeydew",
+            message="帮我生成一个产品视频",
+        )
+        before = product_brains().current("honeydew")
+        proposed = product_agent_turn(
+            product_id="honeydew",
+            task_id=started["task_id"],
+            message="允许使用产品名，禁止医疗功效和治疗表述",
+        )
+        recovery().reject_proposal(
+            "honeydew",
+            proposed["pending_proposal_id"],
+            "仅作为本次任务约束",
+        )
+
+        continued = product_agent_turn(
+            product_id="honeydew",
+            task_id=started["task_id"],
+            message=(
+                "仅用于本次任务，不写入 Product Brain。"
+                "允许使用产品名；禁止医疗功效和治疗表述。"
+            ),
+        )
+        after = product_brains().current("honeydew")
+
+    assert continued["task_id"] == started["task_id"]
+    assert continued["pending_proposal_id"] == ""
+    assert [item["field_key"] for item in continued["questions"]] == [
+        "product_sku",
+        "current_packaging",
+    ]
+    assert before["content_hash"] == after["content_hash"]
+
+
+def test_discovery_answers_can_stay_task_local_without_product_brain_writeback(tmp_path):
+    from product_creative.capabilities.material.asset_service import register_material_asset
+    from product_creative.capabilities.product.workspace_service import create_product
+    from product_creative.ports.runtime_repositories import product_brains
+    from product_creative.runtime.agent import product_agent_turn
+    from product_creative.runtime.creative_tasks import load_creative_task
+    from product_creative.runtime.professional_artifacts import (
+        load_professional_artifact,
+    )
+    from product_creative.workspace import workspace_scope
+
+    with workspace_scope(tmp_path):
+        create_product("honeydew", "周十五蜂蜜露")
+        image_path = tmp_path / "current-main.png"
+        image_path.write_bytes(
+            base64.b64decode(
+                "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
+            )
+        )
+        register_material_asset(
+            "honeydew",
+            str(image_path),
+            "current_main_image",
+            "已确认当前包装主图",
+            ["product_reference", "video_first_frame"],
+        )
+        started = product_agent_turn(
+            product_id="honeydew",
+            message="帮我生成一个产品视频，包装不能变化",
+            provider="volcengine-ark-image",
+        )
+        before = product_brains().current("honeydew")
+
+        claims = product_agent_turn(
+            product_id="honeydew",
+            task_id=started["task_id"],
+            message=(
+                    "仅用于本次任务，不写入 Product Brain。"
+                    "允许使用产品名、外观可爱、便携小巧；"
+                    "禁止快速通便、孕妇适用、安全有效、治疗便秘。"
+                ),
+            )
+        sku = product_agent_turn(
+            product_id="honeydew",
+            task_id=started["task_id"],
+            message=(
+                "仅用于本次任务，不写入 Product Brain。"
+                "本次 SKU 是主图所示周十五益生菌蜂蜜露 10mLx10支。"
+            ),
+        )
+        after = product_brains().current("honeydew")
+        task = load_creative_task("honeydew", started["task_id"])
+        grounding = load_professional_artifact(
+            "honeydew",
+            task.professional_artifacts["product_grounding_pack"],
+        )
+
+    assert claims["task_id"] == started["task_id"]
+    assert claims["pending_proposal_id"] == ""
+    assert [item["field_key"] for item in claims["questions"]] == ["product_sku"]
+    assert sku["task_id"] == started["task_id"]
+    assert sku["pending_proposal_id"] == ""
+    assert task.task_context["claim_boundaries"] == {
+        "allowed": ["产品名", "外观可爱", "便携小巧"],
+        "forbidden": ["快速通便", "孕妇适用", "安全有效", "治疗便秘"],
+    }
+    assert task.task_context["product_sku"].endswith("周十五益生菌蜂蜜露 10mLx10支。")
+    assert task.readiness.ready is True
+    assert task.questions == []
+    assert grounding.sku["value"].endswith("周十五益生菌蜂蜜露 10mLx10支。")
+    assert grounding.confirmed_claims == ["产品名", "外观可爱", "便携小巧"]
+    assert grounding.forbidden_claims == [
+        "快速通便",
+        "孕妇适用",
+        "安全有效",
+        "治疗便秘",
+    ]
+    assert before["brain_version_id"] == after["brain_version_id"]
+    assert before["content_hash"] == after["content_hash"]
+
+
+def test_task_local_answer_is_durable_before_downstream_preparation(tmp_path, monkeypatch):
+    from product_creative.capabilities.material.asset_service import register_material_asset
+    from product_creative.capabilities.product.workspace_service import create_product
+    from product_creative.runtime import creative_tasks
+    from product_creative.runtime.agent import product_agent_turn
+    from product_creative.workspace import workspace_scope
+
+    with workspace_scope(tmp_path):
+        create_product("honeydew", "周十五蜂蜜露")
+        image_path = tmp_path / "current-main.png"
+        image_path.write_bytes(
+            base64.b64decode(
+                "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
+            )
+        )
+        register_material_asset(
+            "honeydew",
+            str(image_path),
+            "current_main_image",
+            "已确认当前包装主图",
+            ["product_reference", "video_first_frame"],
+        )
+        started = product_agent_turn(
+            product_id="honeydew",
+            message="帮我生成一个产品视频，包装不能变化",
+            provider="volcengine-ark-image",
+        )
+        product_agent_turn(
+            product_id="honeydew",
+            task_id=started["task_id"],
+            message=(
+                "仅用于本次任务，不写入 Product Brain。"
+                "允许使用产品名；禁止医疗功效。"
+            ),
+        )
+        monkeypatch.setattr(
+            creative_tasks,
+            "advance_offline_preparation",
+            lambda _task: (_ for _ in ()).throw(ValueError("invalid candidate")),
+        )
+
+        with pytest.raises(ValueError, match="invalid candidate"):
+            product_agent_turn(
+                product_id="honeydew",
+                task_id=started["task_id"],
+                message=(
+                    "仅用于本次任务，不写入 Product Brain。"
+                    "本次 SKU 是周十五益生菌蜂蜜露 10mLx10支。"
+                ),
+            )
+        reloaded = creative_tasks.load_creative_task(
+            "honeydew",
+            started["task_id"],
+        )
+
+    assert reloaded.task_context["product_sku"].endswith(
+        "周十五益生菌蜂蜜露 10mLx10支。"
+    )
+    assert reloaded.readiness.ready is True
+    assert reloaded.questions == []
+
+
+def test_unapproved_ready_task_resumes_only_offline_preparation(tmp_path, monkeypatch):
+    from product_creative.common import write_json
+    from product_creative.runtime import creative_tasks
+    from product_creative.workspace import workspace_scope
+
+    with workspace_scope(tmp_path):
+        _create_mature_video_product(tmp_path)
+        task = creative_tasks.start_creative_task(
+            "honeydew",
+            "用当前主图生成一个产品视频",
+            provider="volcengine-ark-image",
+        )
+        task.status = "READY"
+        task.current_stage = "GENERATING"
+        task.authorization_id = ""
+        write_json(Path(task.artifact_path), task.model_dump(mode="json"))
+        calls: list[str] = []
+
+        def fake_advance(current):
+            calls.append(current.task_id)
+            current.status = "BLOCKED_AUTHORIZATION"
+            current.blocked_reason = "offline preparation reached authorization boundary"
+            return current
+
+        monkeypatch.setattr(
+            creative_tasks,
+            "advance_offline_preparation",
+            fake_advance,
+        )
+        resumed = creative_tasks.continue_creative_task(
+            "honeydew",
+            task.task_id,
+            "继续完成离线准备",
+        )
+
+    assert calls == [task.task_id]
+    assert resumed.task_id == task.task_id
+    assert resumed.authorization_id == ""
+    assert resumed.status == "BLOCKED_AUTHORIZATION"
+
+
 def test_task_authorization_is_scoped_and_never_includes_product_brain_writeback(tmp_path):
     from product_creative.capabilities.product.workspace_service import create_product
     from product_creative.ports.runtime_repositories import product_brains
@@ -534,7 +799,28 @@ def test_consumed_video_submit_authorization_still_allows_non_billable_status_re
         authorization = approve_task_authorization(
             "honeydew", task.task_id, request.request_id, confirmed=True
         )
-        consume_task_authorization(authorization, "submit_video_generation_task")
+        for _ in range(5):
+            assert authorization_allows(
+                authorization,
+                "submit_video_generation_task",
+            )
+            consume_task_authorization(
+                authorization,
+                "submit_video_generation_task",
+            )
+
+        assert authorization.status == "ACTIVE"
+        assert not authorization_allows(
+            authorization, "submit_video_generation_task"
+        )
+        assert authorization_allows(
+            authorization, "submit_image_generation_job"
+        )
+        for _ in range(5):
+            consume_task_authorization(
+                authorization,
+                "submit_image_generation_job",
+            )
 
     assert authorization.status == "CONSUMED"
     assert not authorization_allows(authorization, "submit_video_generation_task")
@@ -1283,13 +1569,22 @@ def test_channel_name_alone_does_not_authorize_platform_scraping(tmp_path):
             "honeydew",
             "搜索抖音最新爆款灵感，再用当前主图生成产品视频",
         )
+        fresh_channel_task = start_creative_task(
+            "honeydew",
+            "用当前主图生成一个今天能发的抖音产品视频",
+        )
         channel_authorization = create_task_authorization_request(channel_task)
         research_authorization = create_task_authorization_request(research_task)
+        fresh_channel_authorization = create_task_authorization_request(
+            fresh_channel_task
+        )
 
     assert channel_authorization.data_sources == []
     assert channel_authorization.allow_browser_cookies is False
     assert research_authorization.data_sources == ["web", "douyin"]
     assert research_authorization.allow_browser_cookies is True
+    assert fresh_channel_authorization.data_sources == ["web"]
+    assert fresh_channel_authorization.allow_browser_cookies is False
 
 
 def test_all_research_sources_can_degrade_to_confirmed_brain_without_claiming_freshness(tmp_path):

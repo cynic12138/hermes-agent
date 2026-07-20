@@ -8,9 +8,9 @@ import subprocess
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
-from ...common import append_jsonl, ensure_product, now_iso, product_state_path, read_json, read_product_state, timestamp, update_index_and_log, write_json
+from ...common import append_jsonl, ensure_product, now_iso, product_state_path, read_product_state, timestamp, update_index_and_log, write_json
 from ...context_safety import apply_generation_safe_state
-from ...ports.runtime_repositories import artifacts, materials
+from ...ports.runtime_repositories import artifacts
 
 from ..review.task_overview_service import create_task_overview_package
 
@@ -109,40 +109,9 @@ def _rel(base: Path, path: Path) -> str:
     return str(path.resolve().relative_to(base.resolve()))
 
 def _resolve_material(base: Path, asset: str) -> Tuple[Dict[str, Any], Path]:
-    if asset:
-        candidate = Path(asset)
-        if candidate.exists():
-            resolved = candidate.resolve()
-            root = base.resolve()
-            if resolved != root and root not in resolved.parents:
-                raise ValueError("material path must stay inside the product workspace")
-            return {}, resolved
-        name = asset if asset.endswith(".json") else f"{asset}.json"
-        direct = base / "artifacts" / "material_assets" / name
-        if direct.exists():
-            payload = read_json(direct, {})
-            return payload, _material_stored_path(base, payload)
-    state = read_product_state(base)
-    current_id = _text(((state.get("assets") or {}).get("current_main_image_id")))
-    if current_id and current_id != asset:
-        return _resolve_material(base, current_id)
-    candidates = [
-        payload for payload in materials().list(base.name)
-        if payload.get("status") == "active" and payload.get("role") == "current_main_image"
-    ]
-    if not candidates:
-        raise FileNotFoundError("no active current_main_image material is available")
-    payload = sorted(candidates, key=lambda item: _text(item.get("created_at")))[-1]
-    return payload, _material_stored_path(base, payload)
+    from ...runtime.product_plate import resolve_product_material
 
-def _material_stored_path(base: Path, material: Dict[str, Any]) -> Path:
-    stored = _text(material.get("stored_path"))
-    if not stored:
-        raise ValueError("material has no stored_path")
-    path = base / stored
-    if not path.exists():
-        raise FileNotFoundError(f"material image does not exist: {stored}")
-    return path
+    return resolve_product_material(base.name, asset)
 
 def _latest_analysis_for_material(base: Path, material_id: str) -> Dict[str, Any]:
     matches = [payload for payload in artifacts().list(base.name, "image_analysis") if payload.get("material_id") == material_id]
@@ -176,6 +145,78 @@ def _story_claims(state: Dict[str, Any], analysis: Dict[str, Any], template: str
         "cta": product_name,
     }
 
+
+def story_claims_from_professional_artifacts(
+    state: Dict[str, Any],
+    story: Dict[str, Any],
+    production_bible: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Map approved story/shot artifacts to the deterministic compositor layers."""
+
+    safe = (
+        state.get("generation_safe")
+        if isinstance(state.get("generation_safe"), dict)
+        else {}
+    )
+    product_name = safe.get("product_name") or state.get("name") or "当前产品"
+    shots = [
+        item
+        for item in production_bible.get("shots") or []
+        if isinstance(item, dict)
+    ]
+    badges = list(
+        dict.fromkeys(
+            str(item.get("caption") or "").strip()
+            for item in shots
+            if str(item.get("caption") or "").strip()
+        )
+    )[:3]
+    if not badges:
+        badges = [
+            str(item).strip()
+            for item in story.get("dialogue") or []
+            if str(item).strip()
+        ][:3]
+    total = sum(float(item.get("duration_seconds") or 0) for item in shots) or 1.0
+    elapsed = 0.0
+    beats = []
+    for item in shots:
+        duration = float(item.get("duration_seconds") or 0)
+        start = round(elapsed / total * 100)
+        elapsed += duration
+        end = round(elapsed / total * 100)
+        beats.append(
+            {
+                "time": f"{start}-{end}%",
+                "beat": str(
+                    item.get("narrative_function")
+                    or item.get("action")
+                    or ""
+                ),
+            }
+        )
+    ending = _text(story.get("ending"))
+    dialogue = [
+        str(item).strip()
+        for item in story.get("dialogue") or []
+        if str(item).strip()
+    ]
+    return {
+        "product_name": product_name,
+        "template_title": "专业剧情产品短视频",
+        "hook": _text(story.get("hook_visual")),
+        "need": _text(story.get("conflict")),
+        "intro": _text(story.get("product_intervention")),
+        "taste": _text(story.get("turn")),
+        "badge_line": badges[0] if badges else (dialogue[0] if dialogue else ending),
+        "final_line": ending,
+        "footer": _text(story.get("premise")),
+        "beats": beats,
+        "badges": badges,
+        "cta": dialogue[-1] if dialogue else product_name,
+    }
+
+
 def create_exact_main_image_video(
     product_id: str,
     asset: str = "",
@@ -183,6 +224,8 @@ def create_exact_main_image_video(
     template: str = "anime_story",
     duration: int = 10,
     fps: int = 24,
+    story_package: str = "",
+    production_bible: str = "",
 ) -> Dict[str, Any]:
     """Compose a local video that keeps the main product image as a fixed layer."""
 
@@ -206,7 +249,26 @@ def create_exact_main_image_video(
     state = apply_generation_safe_state(read_product_state(base))
     material, source_path = _resolve_material(base, asset)
     analysis = _latest_analysis_for_material(base, _text(material.get("material_id")))
-    story = _story_claims(state, analysis, template)
+    story_payload: Dict[str, Any] = {}
+    bible_payload: Dict[str, Any] = {}
+    if story_package or production_bible:
+        if not story_package or not production_bible:
+            raise ValueError(
+                "exact-main professional composition requires both Story Package and Production Bible"
+            )
+        story_payload = artifacts().get(base.name, story_package)
+        bible_payload = artifacts().get(base.name, production_bible)
+        if story_payload.get("schema_name") != "product_creative.story_package.v1":
+            raise ValueError("invalid Story Package artifact")
+        if bible_payload.get("schema_name") != "product_creative.production_bible.v1":
+            raise ValueError("invalid Production Bible artifact")
+        story = story_claims_from_professional_artifacts(
+            state,
+            story_payload,
+            bible_payload,
+        )
+    else:
+        story = _story_claims(state, analysis, template)
 
     result_id = f"video-result-{timestamp()}"
     run_dir = base / "artifacts" / "generated_videos" / f"exact-main-video-{timestamp()}"
@@ -302,6 +364,13 @@ def create_exact_main_image_video(
         "source_material_id": material.get("material_id", ""),
         "source_material_path": _rel(base, source_path),
         "source_analysis_id": analysis.get("analysis_id", ""),
+        "source_story_package_id": str(story_payload.get("artifact_id") or ""),
+        "source_story_package_hash": str(story_payload.get("content_hash") or ""),
+        "source_production_bible_id": str(bible_payload.get("artifact_id") or ""),
+        "source_production_bible_hash": str(bible_payload.get("content_hash") or ""),
+        "compiled_from": (
+            "production_bible" if story_payload and bible_payload else "legacy_template"
+        ),
         "theme": _text(theme) or "固定真实主图的动漫剧情推广视频",
         "template": template,
         "template_title": story.get("template_title", ""),

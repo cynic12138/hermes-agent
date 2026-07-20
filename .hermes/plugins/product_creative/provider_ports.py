@@ -14,7 +14,14 @@ class GenerationProviderGateway(Protocol):
         self, product_id: str, payload_id: str, provider: str, mode: str, confirmed: bool, note: str
     ) -> Dict[str, Any]: ...
 
-    def prepare_payload(self, product_id: str, brief_id: str, provider: str, kind: str) -> Dict[str, Any]: ...
+    def prepare_payload(
+        self,
+        product_id: str,
+        brief_id: str,
+        provider: str,
+        kind: str,
+        production_bible: str = "",
+    ) -> Dict[str, Any]: ...
 
     def submit_image(
         self, product_id: str, payload_id: str, provider: str, mode: str, count: int
@@ -30,4 +37,22 @@ class GenerationProviderGateway(Protocol):
 
     def import_video_result(
         self, product_id: str, task_id: str, url: str, provider: str, note: str, download: bool
+    ) -> Dict[str, Any]: ...
+
+    def prepare_media_shot(
+        self,
+        product_id: str,
+        plan_id: str,
+        shot_id: str,
+        provider: str,
+        media_kind: str,
+    ) -> Dict[str, Any]: ...
+
+    def submit_media_shot(
+        self,
+        product_id: str,
+        payload_id: str,
+        provider: str,
+        mode: str,
+        execution_policy_id: str = "",
     ) -> Dict[str, Any]: ...

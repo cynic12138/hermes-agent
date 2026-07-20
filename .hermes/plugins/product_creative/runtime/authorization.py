@@ -15,8 +15,9 @@ from ..contracts.models import (
 from ..ports.runtime_repositories import artifacts
 
 
-def create_task_authorization_request(task: CreativeTaskRecord) -> TaskAuthorizationRequest:
-    base = ensure_product(task.product_id)
+def task_authorization_scope(task: CreativeTaskRecord) -> dict:
+    """Return the exact external and paid-operation scope needed by a task."""
+
     sources = []
     message = task.request.raw_message
     explicit_platform_research = any(
@@ -29,18 +30,62 @@ def create_task_authorization_request(task: CreativeTaskRecord) -> TaskAuthoriza
         sources.append("xiaohongshu")
     if explicit_platform_research and "抖音" in message:
         sources.append("douyin")
+    media_deliverables = set(task.request.deliverables)
+    # A video task may require generated backgrounds/first frames before the
+    # video provider is invoked. Exact packaging is composited locally and
+    # does not replace the dynamic video-provider stage.
+    needs_paid_image = bool(media_deliverables.intersection({"image", "video"}))
+    needs_paid_video = "video" in media_deliverables
+    return {
+        "data_sources": sources,
+        "allow_browser_cookies": any(
+            item in sources for item in ("xiaohongshu", "douyin")
+        ),
+        "allow_paid_image": needs_paid_image,
+        "allow_paid_video": needs_paid_video,
+        "max_image_calls": 5 if needs_paid_image else 0,
+        "max_video_calls": 5 if needs_paid_video else 0,
+    }
+
+
+def expire_pending_task_authorization_requests(
+    product_id: str,
+    task_id: str,
+    *,
+    keep_request_id: str = "",
+) -> list[str]:
+    """Expire superseded pending authorization projections for one task."""
+
+    base = ensure_product(product_id)
+    expired: list[str] = []
+    for payload in artifacts().list(base.name, "task_authorization_requests"):
+        try:
+            request = TaskAuthorizationRequest.model_validate(payload)
+        except (TypeError, ValueError):
+            continue
+        if (
+            request.task_id != task_id
+            or request.request_id == keep_request_id
+            or request.status != "PENDING"
+        ):
+            continue
+        request.status = "EXPIRED"
+        write_json(Path(request.artifact_path), request.model_dump(mode="json"))
+        expired.append(request.request_id)
+    return expired
+
+
+def create_task_authorization_request(task: CreativeTaskRecord) -> TaskAuthorizationRequest:
+    base = ensure_product(task.product_id)
+    expire_pending_task_authorization_requests(base.name, task.task_id)
+    scope = task_authorization_scope(task)
     request_id = f"authorization-request-{uuid.uuid4().hex}"
     path = base / "artifacts" / "task_authorization_requests" / f"{request_id}.json"
     request = TaskAuthorizationRequest(
         request_id=request_id,
         task_id=task.task_id,
         product_id=task.product_id,
-        data_sources=sources,
-        allow_browser_cookies=any(item in sources for item in ("xiaohongshu", "douyin")),
-        allow_paid_image="image" in task.request.deliverables,
-        allow_paid_video="video" in task.request.deliverables,
-        max_image_calls=1 if "image" in task.request.deliverables else 0,
-        max_video_calls=1 if "video" in task.request.deliverables else 0,
+        **scope,
         created_at=now_iso(),
         artifact_path=str(path),
     )

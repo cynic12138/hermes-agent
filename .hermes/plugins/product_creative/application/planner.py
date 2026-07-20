@@ -100,7 +100,13 @@ class GoalPlanner:
             )
         if "video" in request.deliverables:
             if request.preserve_exact_packaging:
-                candidates.append(("GENERATING", "compose_exact_main_video", ""))
+                candidates.append(
+                    (
+                        "GENERATING",
+                        "compose_exact_main_video",
+                        "task_authorization",
+                    )
+                )
             else:
                 candidates.extend(
                     [
@@ -129,6 +135,22 @@ class GoalPlanner:
         return [
             CreativeTaskPlanStep(stage=stage, action=action, guard=guard)
             for stage, action, guard in candidates
+        ]
+
+    def creative_task_gates(self, request: CreativeTaskRequest) -> list[str]:
+        """Declare the durable professional artifacts required before video generation."""
+
+        if "video" not in request.deliverables:
+            return []
+        return [
+            "creative_task_brief",
+            "product_grounding_pack",
+            "research_insight_pack",
+            "creative_candidates",
+            "creative_decision",
+            "story_package",
+            "production_bible",
+            "preflight_qa",
         ]
 
     @staticmethod

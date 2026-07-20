@@ -1,0 +1,24 @@
+{
+  "name": "research-director",
+  "version": "1.0.0",
+  "stage": "research_director",
+  "input_schemas": [
+    "product_creative.creative_task_brief.v1",
+    "product_creative.product_grounding_pack.v1"
+  ],
+  "output_schemas": [
+    "product_creative.research_insight_pack.v1"
+  ],
+  "tool_allowlist": [
+    "artifact_read",
+    "source_snapshot_read",
+    "history_search"
+  ],
+  "failure_codes": [
+    "source_missing",
+    "source_undated",
+    "source_unreadable",
+    "source_unrelated",
+    "source_reference_missing"
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "name": "creative-review",
+  "version": "1.0.0",
+  "stage": "creative_review",
+  "input_schemas": [
+    "product_creative.product_grounding_pack.v1",
+    "product_creative.research_insight_pack.v1",
+    "product_creative.creative_candidate.v1"
+  ],
+  "output_schemas": [
+    "product_creative.creative_decision.v1"
+  ],
+  "tool_allowlist": [
+    "artifact_read",
+    "history_search",
+    "material_read",
+    "provider_capability_read",
+    "policy_read"
+  ],
+  "failure_codes": [
+    "candidate_coverage_incomplete",
+    "evidence_missing",
+    "unexplained_scores",
+    "hard_rule_violation",
+    "all_candidates_repetitive"
+  ]
+}

@@ -22,6 +22,9 @@ from product_creative.application.console_queries import ProductCreativeConsoleQ
 from product_creative.contracts.durable import CommandEnvelope
 from product_creative.contracts.errors import OptimisticVersionConflict
 from product_creative.workspace import resolve_workspace_root, workspace_scope
+from product_creative.ports.runtime_repositories import recovery
+from product_creative.runtime.media_review import record_media_qa_decision
+from product_creative.runtime.desktop_diagnostics import collect_desktop_diagnostics
 
 
 router = APIRouter(prefix="/v1", tags=["product-creative"])
@@ -65,6 +68,47 @@ def _dispatch(command: str, product_id: str, payload: Dict[str, Any]):
     return JSONResponse(status_code=status, content=result.model_dump(mode="json"))
 
 
+def _media_qa_dispatch(
+    product_id: str,
+    qa_report_id: str,
+    payload: Dict[str, Any],
+):
+    decision = str(payload.get("decision") or "")
+    trace_id = str(payload.get("trace_id") or f"desktop-{uuid.uuid4().hex}")
+    if not payload.get("confirmed"):
+        confirmation_id = recovery().request_confirmation(
+            product_id,
+            "product_media_qa_decide",
+            qa_report_id,
+            "medium",
+            trace_id,
+        )
+        return JSONResponse(
+            status_code=428,
+            content={
+                "success": False,
+                "error_code": "CONFIRMATION_REQUIRED",
+                "output": {"confirmation_id": confirmation_id},
+            },
+        )
+    try:
+        result = record_media_qa_decision(
+            product_id,
+            qa_report_id=qa_report_id,
+            decision=decision,
+            reason=str(payload.get("reason") or ""),
+            actor=str(payload.get("actor") or "desktop-user"),
+            confirmation_id=str(payload.get("confirmation_id") or ""),
+            trace_id=trace_id,
+        )
+    except (KeyError, OSError, ValueError) as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={"code": "INVALID_STATE", "message": str(exc)},
+        ) from exc
+    return JSONResponse(status_code=200, content=result)
+
+
 @router.get("/health")
 def health(_root: Path = Depends(_workspace)):
     return {"ok": True, "workspace": str(_root), "version": "9.1.0-alpha.1"}
@@ -73,6 +117,84 @@ def health(_root: Path = Depends(_workspace)):
 @router.get("/products")
 def products(_root: Path = Depends(_workspace)):
     return {"products": _read(queries.products)}
+
+
+@router.post("/products", status_code=201)
+def create_desktop_product(
+    body: Dict[str, Any] = Body(...),
+    _root: Path = Depends(_workspace),
+):
+    name = str(body.get("name") or "").strip()
+    product_id = str(body.get("product_id") or "").strip()
+    description = str(body.get("description") or "").strip()
+    if not name:
+        raise HTTPException(status_code=422, detail="product name is required")
+    if len(name) > 200:
+        raise HTTPException(status_code=422, detail="product name exceeds 200 characters")
+    if len(product_id) > 100:
+        raise HTTPException(status_code=422, detail="product id exceeds 100 characters")
+    if len(description) > 10_000:
+        raise HTTPException(status_code=422, detail="product description exceeds 10000 characters")
+
+    resolved_result = command_bus().dispatch(
+        CommandEnvelope(
+            command="product_workspace_resolve",
+            product_id="",
+            trace_id=f"desktop-onboarding-{uuid.uuid4().hex}",
+            payload={
+                "query": name,
+                "create_if_missing": True,
+                "suggested_id": product_id,
+                "name": name,
+            },
+        )
+    )
+    if not resolved_result.success:
+        raise HTTPException(
+            status_code=409,
+            detail=resolved_result.error_message or "product workspace could not be created",
+        )
+    resolved = dict(resolved_result.output)
+    if not resolved.get("created"):
+        raise HTTPException(
+            status_code=409,
+            detail="a matching product already exists; select it instead of overwriting it",
+        )
+    selected_product_id = str(resolved.get("selected_product_id") or "")
+    ingest: Dict[str, Any] = {}
+    if description:
+        ingest_result = command_bus().dispatch(
+            CommandEnvelope(
+                command="product_ingest",
+                product_id=selected_product_id,
+                trace_id=f"desktop-onboarding-ingest-{uuid.uuid4().hex}",
+                payload={
+                    "product_id": selected_product_id,
+                    "text": description,
+                    "images": [],
+                },
+            )
+        )
+        if not ingest_result.success:
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "code": "PRODUCT_CREATED_INGEST_FAILED",
+                    "product_id": selected_product_id,
+                    "message": ingest_result.error_message,
+                },
+            )
+        ingest = dict(ingest_result.output)
+    return {
+        **resolved,
+        "ingest": ingest,
+        "canonical_brain_changed": False,
+    }
+
+
+@router.get("/diagnostics")
+def diagnostics(_root: Path = Depends(_workspace)):
+    return collect_desktop_diagnostics()
 
 
 @router.get("/products/{product_id}/snapshot")
@@ -183,3 +305,17 @@ def provider_refresh(task_id: str, body: Dict[str, Any] = Body(...), _root: Path
 @router.post("/rules/{rule_id}/revoke")
 def rule_revoke(rule_id: str, body: Dict[str, Any] = Body(...), _root: Path = Depends(_workspace)):
     return _dispatch("product_rule_revoke", str(body.get("product_id") or ""), {**body, "rule_id": rule_id})
+
+
+@router.post("/products/{product_id}/media-qa/{qa_report_id}/decision")
+def media_qa_decision(
+    product_id: str,
+    qa_report_id: str,
+    body: Dict[str, Any] = Body(...),
+    _root: Path = Depends(_workspace),
+):
+    return _media_qa_dispatch(
+        product_id,
+        qa_report_id,
+        {**body, "product_id": product_id},
+    )

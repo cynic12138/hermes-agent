@@ -21,6 +21,7 @@ EXTERNAL_SOURCE_SNAPSHOT_SCHEMA_VERSION = "product_creative.external_source_snap
 DEFAULT_XHS_SIDECAR = "http://127.0.0.1:8787/api"
 
 DEFAULT_DOUYIN_SIDECAR = "http://127.0.0.1:8000"
+DOUYIN_FIRST5_TIMEOUT_SECONDS = 900
 
 def _post_json(url: str, body: Dict[str, Any], timeout: int = 60) -> Dict[str, Any]:
     data = json.dumps(body, ensure_ascii=False).encode("utf-8")
@@ -122,7 +123,9 @@ def _normalize_import_items(provider: str, payload: Any, limit: int) -> List[Dic
             source = payload.get("items")
         elif isinstance(payload.get("data"), list):
             source = payload.get("data")
-        elif isinstance(payload.get("text"), str):
+        elif isinstance(payload.get("text"), str) and not any(
+            payload.get(key) for key in ("title", "name", "url", "source_url")
+        ):
             source = [{"title": "manual import", "text": payload.get("text")}]
         else:
             source = [payload]
@@ -202,22 +205,50 @@ def _douyin_live(
     limit: int,
     transcribe_limit: int,
     analyze_first5_limit: int,
+    source_url: str = "",
 ) -> Dict[str, Any]:
     base_url = sidecar_url.rstrip("/")
     health = _get_json(f"{base_url}/api/health", timeout=10)
-    search = _post_json(
-        f"{base_url}/api/search",
-        {
-            "keyword": query,
-            "max_items": limit,
-            "only_commerce": False,
-            "sort_mode": "hot",
-            "duration": "all",
-            "content_type": "video",
-            "min_hot_value": 0,
-        },
-        timeout=120,
-    )
+    direct_url = _text(source_url)
+    if direct_url:
+        parsed = urllib.parse.urlparse(direct_url)
+        hostname = (parsed.hostname or "").lower()
+        if (
+            parsed.scheme not in {"http", "https"}
+            or not (
+                hostname == "douyin.com"
+                or hostname.endswith(".douyin.com")
+            )
+        ):
+            raise ValueError("Douyin direct URL must use an http(s) douyin.com host")
+        match = re.search(r"/video/(\d+)", parsed.path)
+        source_item_id = match.group(1) if match else parsed.path.rstrip("/").rsplit("/", 1)[-1]
+        search = {
+            "items": [
+                {
+                    "aweme_id": source_item_id,
+                    "title": query or "用户指定抖音视频",
+                    "share_url": direct_url,
+                    "stats": {},
+                }
+            ],
+            "count": 1,
+            "source": "direct_url",
+        }
+    else:
+        search = _post_json(
+            f"{base_url}/api/search",
+            {
+                "keyword": query,
+                "max_items": limit,
+                "only_commerce": False,
+                "sort_mode": "hot",
+                "duration": "all",
+                "content_type": "video",
+                "min_hot_value": 0,
+            },
+            timeout=120,
+        )
     items = [_douyin_item(item) for item in _list(search.get("items"))[:limit] if isinstance(item, dict)]
     transcribed = 0
     transcript_attempts = 0
@@ -256,7 +287,11 @@ def _douyin_live(
             result = _post_json(
                 f"{base_url}/api/video/analyze-first5",
                 {"url": url, "api_key": "", "siliconflow_api_key": ""},
-                timeout=360,
+                # The sidecar permits up to 180 seconds for Ark file upload
+                # and 600 seconds for the Responses analysis. Keep this
+                # client boundary longer than the sidecar's own bounded work
+                # so a valid slow result is not discarded at 360 seconds.
+                timeout=DOUYIN_FIRST5_TIMEOUT_SECONDS,
             )
             item["first5_analysis"] = {
                 "model": _text(result.get("model")),
@@ -400,6 +435,7 @@ def collect_external_source_snapshot(
                     clean_limit,
                     transcribe_limit,
                     analyze_first5_limit,
+                    source_url=url,
                 )
                 items = _list(live.get("items"))
                 raw_ref = {

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import inspect
 from typing import Any, Dict, Iterable
 
 from ...provider_gateway import generation_provider_gateway
@@ -39,7 +40,18 @@ def _revise_brief(args: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _build_payload(args: Dict[str, Any]) -> Dict[str, Any]:
-    return generation_provider_gateway().prepare_payload(
+    gateway = generation_provider_gateway()
+    production_bible = text(args.get("production_bible_id"))
+    prepare_parameters = inspect.signature(gateway.prepare_payload).parameters
+    if production_bible and "production_bible" in prepare_parameters:
+        return gateway.prepare_payload(
+            text(args.get("product_id")),
+            text(args.get("brief_id")),
+            text(args.get("provider")) or "volcengine-ark-video",
+            "video",
+            production_bible,
+        )
+    return gateway.prepare_payload(
         text(args.get("product_id")),
         text(args.get("brief_id")),
         text(args.get("provider")) or "volcengine-ark-video",
@@ -109,6 +121,8 @@ def _compose_exact(args: Dict[str, Any]) -> Dict[str, Any]:
         text(args.get("template")) or "anime_story",
         int(args.get("duration") or 10),
         int(args.get("fps") or 24),
+        text(args.get("story_package_id")),
+        text(args.get("production_bible_id")),
     )
 
 

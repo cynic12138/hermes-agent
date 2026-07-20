@@ -154,6 +154,9 @@ def _live_image_body(payload: Dict[str, Any], provider: Dict[str, Any]) -> Dict[
     }
     if defaults.get("sequential_image_generation"):
         body["sequential_image_generation"] = defaults.get("sequential_image_generation")
+    reference_image = request.get("image")
+    if isinstance(reference_image, (str, list)) and reference_image:
+        body["image"] = reference_image
     return body
 
 

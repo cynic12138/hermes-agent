@@ -38,8 +38,13 @@ if ($ExpectedVersion -and $ExpectedVersion -ne $version) { throw "Release versio
 if (Test-Path -LiteralPath $output) { Remove-Item -LiteralPath $output -Recurse -Force }
 New-Item -ItemType Directory -Path $output | Out-Null
 
-$tracked = git -C $repoRoot ls-files --cached -- ".hermes/plugins/product_creative"
-foreach ($entry in $tracked) {
+# A release candidate must reflect the reviewed worktree, including newly added
+# first-party source files that have not been committed yet. Ignored runtime
+# data and generated files remain excluded by Git and the filters below.
+$sourceFiles = @(
+    git -C $repoRoot ls-files --cached --others --exclude-standard -- ".hermes/plugins/product_creative"
+) | Sort-Object -Unique
+foreach ($entry in $sourceFiles) {
     $relative = $entry.Substring(".hermes/plugins/product_creative/".Length)
     if (
         $relative -match '(^|/)(__pycache__|\.pytest_cache|runtime_data)(/|$)' -or
