@@ -2,12 +2,12 @@
 
 - 最后更新：2026-07-20
 - 分支：`product-creative-rebaseline-20260716`
-- M11–M15 实现与测试提交：`25e26df`；长期状态文档提交：`5e87c86`；进入项目时必须重新运行 `git rev-parse HEAD`
+- M11–M15 实现与测试提交：`25e26df`；首次安装修复：`4f74ef3`；进入项目时必须重新运行 `git rev-parse HEAD`
 - M9.1 实现基线：`83b4e8f`
 - 当前阶段：M14 自动媒体 QA、返修与学习质量已达到
   `DONE_IN_PILOT_REF_UNPUBLISHED_LIVE_GATE_AND_USER_ACCEPTANCE_PENDING`
 - M15 Desktop 状态：
-  `PILOT_REF_AVAILABLE_UNPUBLISHED_INSTALLER_REBUILD_AND_OPERATOR_ACCEPTANCE_PENDING`
+  `PILOT_REF_AVAILABLE_UNPUBLISHED_FRESH_INSTALL_NETWORK_AND_OPERATOR_ACCEPTANCE_PENDING`
 - 当前 Live Gate：`LOCAL_GATE_PASSED / EXPLICIT_EXTERNAL_DISCLOSURE_APPROVED / TENANT_POLICY_BLOCKED`；
   当前任务、策略阻塞、已有真实 `REPAIR` 案例和恢复步骤见 `docs/M14_LIVE_GATE_20260717.md`
 
@@ -106,18 +106,18 @@ M10 必读 `docs/M10_PRODUCT_COGNITION_AUTONOMOUS_CREATION_IMPLEMENTATION.md`、
   恢复、产品事实/创意方向/成片质量三节点、Settings 无密钥诊断和 workspace/locale/cleanup
   隔离。分发扫描、enabled user-plugin 离线安装和 Windows NSIS Desktop 壳构建通过。
 - M15 bundle SHA-256 为
-  `8291e28588ca06d5a1613c05f30699032540ff42c33b5dfce2694ed60adf9937`；2026-07-20 重建安装器
-  SHA-256 为 `AC759A1EEFC3F555E58F75209D4DF1169270688525231592F307A093F8998F56`。
+  `8291e28588ca06d5a1613c05f30699032540ff42c33b5dfce2694ed60adf9937`；首次安装修复后的安装器
+  SHA-256 为 `283733CDCE6EA31EB87AADD8CD3C7C6CD81715241A1E7AC70ACF5BA79B1AC381`。
 - 本机隔离目录 `m15-pilot-native-20260717-1720` 已证明“打包壳 + worktree runtime +
   enabled user plugin”可启动 backend、发现 bundle、返回诊断并安全 onboarding；Canonical Brain
-  未改变。方案 A 已把实现提交 `25e26df` 和状态文档提交 `5e87c86` 推送到 origin pilot ref；
-  新 EXE stamp 已固定到 `5e87c865c7fe105374300042c73d1cb1dd4ad746`，且 `dirty=false`。
+  未改变。方案 A 和首次安装修复 `4f74ef3` 已推送到 origin pilot ref。新 EXE 同时携带
+  `install.ps1/install.sh`，stamp 固定到 `cynic12138/hermes-agent@4f74ef3`，且 `dirty=false`。
 
 ## 当前待办/下一入口
 
-方案 A 已执行并建立可获取 pilot ref，install stamp 和 NSIS 重建均完成。下一工程动作是在
-`raw.githubusercontent.com` DNS 恢复后原样重跑隔离 fresh-install；当前首次引导日志明确记录
-`getaddrinfo ENOENT raw.githubusercontent.com`，尚未下载 runtime。随后内部运营人员按
+方案 A、仓库来源修复和 NSIS 重建均完成。新安装包不再访问 GitHub Raw，隔离首次启动已进入
+`https://github.com/cynic12138/hermes-agent.git` shallow clone；连接建立但 45 秒内仓库字节没有
+增长，已停止测试。下一工程动作是在 HTTPS clone 可持续传输的网络环境原样重跑。随后内部运营人员按
 `docs/M15_DESKTOP_INTERNAL_PILOT_IMPLEMENTATION.md` 的脚本
 完成全链并记录接受/修改结论。两个门禁都完成前不进入 M16。
 
@@ -131,8 +131,8 @@ Codex 只做本地导入、Product Plate 合成、QA/返修；不得绕过租户
 - 全量宿主 UI 套件有多项与 M9.1 无关的既有失败；定向 M9.1 测试与 Node 22 build 已通过。
 - XHS 旧账号 `-104` 已解决；当前限制是自然语言 E2E 中 `ctx.llm` 不可用，导致深度 LLM 摘要包未生成，但 snapshot 与规则候选均已保存。
 - M13 已提供 ffmpeg/ffprobe 路径发现和 readiness；M15 已能构建通用 Hermes Desktop
-  NSIS 壳且新 stamp 已固定到远端 pilot commit。fresh-install 因 GitHub Raw DNS 阻塞，媒体工具
-  可移植性和独立品牌 Product Creative 安装包仍未验收。
+  NSIS 壳，新 stamp 已固定到 fork 的远端 pilot commit，包内 bootstrap 已移除 GitHub Raw 前置依赖。
+  fresh-install 仍因 GitHub HTTPS clone 停滞而未完成；媒体工具可移植性和独立品牌安装包仍未验收。
 - 豆包图片带“AI生成”水印；Seedance 会生成式重绘包装，只可作为链路审计，不能宣传为包装保真。
 - M10 的旧 DONE 口径已被真实样片推翻：Provider 链路虽成功，但创意和包装质量未通过。不得再把“获得可播放文件”写成 M10 完成。
 - `verify_m2_workflow_run.ps1` 本轮未完成；不得写成通过。

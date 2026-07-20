@@ -2,14 +2,14 @@
 
 - 日期：2026-07-20
 - 分支：`product-creative-rebaseline-20260716`
-- M11–M15 实现与测试提交：`25e26df`；长期状态文档提交：`5e87c86`；进入项目时运行 `git rev-parse HEAD` 重新确认当前提交
+- M11–M15 实现与测试提交：`25e26df`；首次安装修复：`4f74ef3`；进入项目时运行 `git rev-parse HEAD` 重新确认当前提交
 - M9.1 实现提交：`83b4e8f`
 - M10 实现提交：`33d096f`
 - 已提交阶段：M9.1 Desktop Plugin SDK 迁移（DONE、本地已提交）
 - 当前阶段：M13.1/M14.1 动态镜头生产与动作质量门禁已达到
   `DONE_IN_PILOT_REF_UNPUBLISHED_LIVE_GATE_AND_USER_ACCEPTANCE_PENDING`
 - M15 Desktop 内部试用状态：
-  `PILOT_REF_AVAILABLE_UNPUBLISHED_INSTALLER_REBUILD_AND_OPERATOR_ACCEPTANCE_PENDING`
+  `PILOT_REF_AVAILABLE_UNPUBLISHED_FRESH_INSTALL_NETWORK_AND_OPERATOR_ACCEPTANCE_PENDING`
 - 当前 Live Gate：`LOCAL_GATE_PASSED / EXPLICIT_EXTERNAL_DISCLOSURE_APPROVED / TENANT_POLICY_BLOCKED`；
   用户已明确授权，但 Codex 租户策略仍禁止外发 workspace 产品资料。本次调用数为 0。
   执行真源为
@@ -130,9 +130,11 @@
 - M15 已完成无产品 onboarding、Evidence/Draft 安全摄入、自然语言任务入口、无 task ID
   恢复、三运营审阅节点、Settings 安全诊断、workspace/zh-CN/cleanup 隔离、插件分发和 NSIS
   Desktop 壳构建。本地“打包壳 + 当前 worktree runtime + 隔离 user plugin”后端试运行通过；
-  包含 M15 的 origin pilot ref 已可获取；薄安装器已重建，install stamp 干净地固定到远端可获取提交
-  `5e87c865c7fe105374300042c73d1cb1dd4ad746`。隔离 fresh-install 已启动，但首次引导因本机
-  DNS 无法解析 `raw.githubusercontent.com` 而停止，尚未完成 runtime 下载和插件发现验证。
+  包含 M15 的 origin pilot ref 已可获取。`4f74ef3` 修复了上游仓库硬编码，并把受校验的
+  `install.ps1/install.sh` 随 Desktop 壳打包；首次启动不再依赖 `raw.githubusercontent.com`。
+  新 install stamp 固定到 `cynic12138/hermes-agent@4f74ef3`，`dirty=false`。隔离 fresh-install
+  已通过 manifest、uv、Python、Git、Node 和系统工具阶段，但 HTTPS shallow clone 连接建立后
+  45 秒内仍停在 27,443 bytes、没有 HEAD，已安全停止，runtime 和插件发现仍待网络复验。
 - M15 定向证据：backend `6 passed`；Product Creative bundle `11 passed`；Desktop
   routes/registry/page/Product Creative `22 passed`；bundle security `2 passed`；分发 bundle
   `1 passed`；M10–M15/来源/分发组合 `207 passed`；typecheck/build、分发扫描、离线安装
@@ -152,8 +154,8 @@
 - M13 已进入 origin pilot ref，状态为 `DONE_IN_PILOT_REF_UNPUBLISHED_LIVE_GATE_PENDING`。
 - M14 已标记
   `DONE_IN_PILOT_REF_UNPUBLISHED_LIVE_GATE_AND_USER_ACCEPTANCE_PENDING`。
-- M15 功能、插件分发和本地打包组合试运行已进入 pilot ref；新 stamp 安装器构建完成，但隔离
-  fresh-install 被 `raw.githubusercontent.com` DNS 解析失败阻塞，内部运营人工全链也尚未完成。
+- M15 功能、插件分发和本地打包组合试运行已进入 pilot ref；GitHub Raw 依赖已从新安装包移除，
+  但隔离 fresh-install 仍被 `github.com` HTTPS clone 无数据进展阻塞，内部运营人工全链也尚未完成。
 - 正式可发布产品视频仍被 M13/M14 联合真实 Provider/VLM Live Gate 和用户质量验收阻塞。
 
 ## DEPRECATED
@@ -216,11 +218,11 @@
 
 ## 下一步推荐
 
-方案 A 已执行：包含 M15 runtime 的 origin pilot ref 已可获取，Desktop/NSIS 已重建，install stamp
-固定到提交 `5e87c865c7fe105374300042c73d1cb1dd4ad746`，安装器 SHA-256 为
-`AC759A1EEFC3F555E58F75209D4DF1169270688525231592F307A093F8998F56`。下一步在
-`raw.githubusercontent.com` DNS 恢复后，从全新隔离 `HERMES_HOME`/workspace/user-data 原样重跑
-fresh-install；不得切换镜像或跳过固定提交校验。随后由一名内部运营人员按
+方案 A 和首次安装修复已执行：Desktop/NSIS 已重建，install stamp 固定到
+`cynic12138/hermes-agent@4f74ef396fc75600e049f82bfe778d67bc15633a`，安装器 SHA-256 为
+`283733CDCE6EA31EB87AADD8CD3C7C6CD81715241A1E7AC70ACF5BA79B1AC381`。下一步在
+`github.com` HTTPS clone 能持续传输后，从全新隔离 `HERMES_HOME`/workspace/user-data 原样重跑
+fresh-install；无需修复 GitHub Raw DNS，也不得跳过固定提交校验。随后由一名内部运营人员按
 `docs/M15_DESKTOP_INTERNAL_PILOT_IMPLEMENTATION.md` 的脚本完成 onboarding、自然语言任务、
 三节点审阅、中断恢复和反馈学习，并由产品/内容负责人记录接受或修改结论。
 

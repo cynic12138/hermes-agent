@@ -4,7 +4,7 @@
 
 - 初始实施：2026-07-17；方案 A 收口：2026-07-20（Asia/Shanghai）
 - 分支：`product-creative-rebaseline-20260716`
-- M11–M15 实现与测试提交：`25e26df`；长期状态文档提交：`5e87c86`
+- M11–M15 实现与测试提交：`25e26df`；首次安装修复：`4f74ef3`
 - 插件版本：`9.1.0-alpha.1`
 - 状态：`PILOT_REF_AVAILABLE / INSTALLER_REBUILT / FRESH_INSTALL_NETWORK_BLOCKED / UNPUBLISHED / INTERNAL_OPERATOR_ACCEPTANCE_PENDING`
 - 源码真源：`.hermes/plugins/product_creative/`
@@ -129,17 +129,19 @@ Desktop task composer
 - 分发 payload SHA-256：`155dbe5021b7af2f89edcf3349444528c690f9dbcf42f5df291c9d66af0eba9d`
 - 分发 source commit：`0aa95637213f02eca2ef8f619daaf771150a7e11`（dirty worktree，不能用于正式发布）
 - Windows Desktop 壳构建产物：`apps/desktop/release/Hermes-0.17.0-win-x64.exe`
-- 2026-07-20 重建安装器大小：117,616,734 bytes
-- 2026-07-20 重建安装器 SHA-256：`AC759A1EEFC3F555E58F75209D4DF1169270688525231592F307A093F8998F56`
-- install stamp commit：`5e87c865c7fe105374300042c73d1cb1dd4ad746`
-- install stamp：branch `product-creative-rebaseline-20260716`、`dirty=false`、source `local`
+- 首次安装修复后的安装器大小：117,691,265 bytes
+- 首次安装修复后的安装器 SHA-256：`283733CDCE6EA31EB87AADD8CD3C7C6CD81715241A1E7AC70ACF5BA79B1AC381`
+- install stamp commit：`4f74ef396fc75600e049f82bfe778d67bc15633a`
+- install stamp：repository `cynic12138/hermes-agent`、branch
+  `product-creative-rebaseline-20260716`、`dirty=false`、source `local`
 
 该文件复用现有 Hermes Desktop Electron/NSIS 薄安装管线。第一次受限构建因不能创建 `%LOCALAPPDATA%\electron-builder` 缓存而失败；取得本机缓存写权限后成功。cleanup 修复后又重新构建并重新计算上述哈希，避免交付旧 renderer。
 
-重要边界：现有 NSIS 主要打包 Desktop 壳，首次启动按 install stamp 获取 Hermes runtime。方案 A
-已把实现提交 `25e26df` 和文档提交 `5e87c86` 推送到 origin pilot ref，并完成新 stamp/NSIS 构建。
-但 fresh-install 仍必须实际下载固定 runtime、发现已启用 Product Creative user plugin 并启动 backend，
-仅有干净 stamp 和安装器文件不能关闭该门禁。
+重要边界：NSIS 仍是薄 Desktop 壳，但 `4f74ef3` 将受校验的 `install.ps1/install.sh` 作为
+`extraResources/bootstrap` 随包分发，并在 stamp 中加入 GitHub `owner/repository`。bootstrap 优先使用
+包内脚本，再按 `cynic12138/hermes-agent@commit` 克隆 runtime；GitHub Raw 仅保留给旧包的兼容回退。
+fresh-install 仍必须完成固定 runtime、enabled Product Creative user plugin 和 backend 启动，不能仅凭
+干净 stamp、包内脚本和安装器文件关闭门禁。
 
 ## 8. 实际验证
 
@@ -156,12 +158,19 @@ Desktop task composer
 - public surface：`84 tools / 84 CLI`，golden hash 一致。
 - TypeScript typecheck：通过。
 - Desktop production build：通过。
+- 首次安装仓库/包内脚本 TDD：RED 分别证明 stamp repository 被忽略、非法 repository 未拒绝、
+  包内脚本未使用；修复后 bootstrap/build-stamp `11 passed`，Windows/POSIX installer repository
+  contract `2 passed`，PowerShell `-Manifest -Repository cynic12138/hermes-agent` 实际返回成功。
+- Desktop platforms：`286 passed / 3 failed / 2 skipped`；3 项为既有 Windows 环境差异（Linux
+  unpacked 路径期望和本机 Bash launcher 不可用），本次 bootstrap 测试全部通过，未顺带修改。
 - 分发版本、哈希和敏感扫描：通过。
 - enabled user-plugin 离线安装：新导出目录
   `C:\data\work file\hermers-agent for me\m15-precommit-dist-20260720-1005` 验证通过。
-- Windows NSIS Desktop 壳构建：通过，并生成 blockmap；不代表 dirty worktree runtime 已被打包。
-- Packaged payload smoke validation：通过；确认 `install-stamp` 指向 `0aa95637213f` / 当前分支，
-  renderer 存在，且 Windows `conpty.node`、`conpty_console_list.node`、`pty.node` 已打包。
+- Windows NSIS Desktop 壳构建：通过，并生成 blockmap。
+- Packaged payload smoke validation：通过；确认 `install-stamp` 指向
+  `cynic12138/hermes-agent@4f74ef396fc7`、`dirty=false`，包内 `bootstrap/install.ps1` 和
+  `bootstrap/install.sh`、renderer，以及 Windows `conpty.node`、`conpty_console_list.node`、
+  `pty.node` 均已打包。
 
 ### 本地打包形态隔离试运行
 
@@ -173,7 +182,8 @@ Desktop task composer
 - 该证据证明“打包 Desktop 壳 + 当前 worktree runtime + 已安装分发插件”的本地组合可运行；不证明薄安装器能在另一台干净机器自动取得未提交 runtime。
 - Windows UI 自动操作权限请求超时，未形成运营人员可见页面的人工点击证据，也未盲目点击。
 
-已知 warning：dirty build stamp、既有 CSS `text-*` 注释解析 warning、约 27 MB 主 chunk 体积 warning。未顺带修复这些非 M15 问题。
+已知 warning：既有 CSS `text-*` 注释解析 warning、约 27 MB 主 chunk 体积 warning。最终安装器
+stamp 为 clean；未顺带修复两个非 M15 build warning。
 
 环境说明：离线安装探针首次误用全局 Anaconda Python，因其缺少项目已声明依赖
 `python-multipart` 而在导入宿主 FastAPI 时失败；改用仓库现有 `.venv` 后原命令通过。
@@ -196,6 +206,19 @@ Desktop task composer
 - `tests/hermes_cli/test_product_creative_m15_desktop_pilot.py`
 - `apps/desktop/src/app/desktop-plugins/product-creative-bundle.test.ts`
 - `apps/desktop/src/app/desktop-plugins/distribution-bundle.test.ts`
+- `apps/desktop/electron/bootstrap-runner.test.cjs`
+- `apps/desktop/scripts/write-build-stamp.test.cjs`
+- `tests/test_install_repository_override.py`
+
+### 首次安装与打包
+
+- `apps/desktop/electron/bootstrap-runner.cjs`
+- `apps/desktop/electron/main.cjs`
+- `apps/desktop/scripts/write-build-stamp.cjs`
+- `apps/desktop/scripts/test-desktop.mjs`
+- `apps/desktop/package.json`
+- `scripts/install.ps1`
+- `scripts/install.sh`
 
 ### 设计、计划与长期知识
 
@@ -213,13 +236,15 @@ Desktop task composer
 
 ## 10. 已知限制与未完成门禁
 
-- **Fresh-install gate：**可获取 pilot ref、新 stamp 和 NSIS 已建立；隔离首次启动于
-  `2026-07-20T02:13:01Z`、`02:13:18Z` 和 `02:15:04Z` 三次均因
-  `getaddrinfo ENOENT raw.githubusercontent.com` 停止。未采用代理、镜像或手工拷贝绕过，网络恢复后需原样复验。
+- **Fresh-install gate：**旧包三次因路由器 DNS 将 `raw.githubusercontent.com` 返回为 `0.0.0.0`
+  而停止；公开 DNS 查询能返回正常地址，hosts/WinHTTP proxy 无异常。新包已移除该前置依赖并成功使用
+  包内 `install.ps1`，通过 manifest、uv、Python、Git、Node 和 system-packages 阶段。随后 HTTPS
+  shallow clone 连接到 `github.com:443`，但 45 秒观察窗口内仓库保持 27,443 bytes、没有 HEAD，
+  因此安全停止隔离 Hermes 和 5 个 clone 子进程。未切换代理、镜像或写 hosts，待网络可持续传输后复验。
 - **Operator acceptance gate：**内部运营人员尚未在可运行的 Desktop 形态中亲自完成一次 onboarding → 自然语言任务 → 审阅 → 恢复 → 反馈全链，因此 M15 不能标记为最终 DONE。
-- 已在用户授权下执行 `test:desktop:fresh`；启动器本身退出成功，但应用日志显示 bootstrap DNS
-  失败，因此不得记为 fresh-install 通过。`test:desktop:existing` 仍未执行，因为它会读取并使用
-  用户真实 Hermes 配置，需在人工试用时单独确认。
+- 已在用户授权下两次执行 `test:desktop:fresh`：旧包暴露 Raw DNS 问题，新包证明包内 bootstrap
+  和 fork 路由生效，但 HTTPS clone 未完成；两者都不得记为 fresh-install 通过。
+  `test:desktop:existing` 仍未执行，因为它会读取并使用用户真实 Hermes 配置，需在人工试用时单独确认。
 - M14 动态真实 Provider Live Gate 仍独立 pending；M15 UI 通过不能替代真实样片质量。
 - 主图上传复用 Hermes chat attachment，不是 Product Creative 页内文件选择器。
 - Settings 只诊断，不代替 Hermes 通用模型/凭据配置。

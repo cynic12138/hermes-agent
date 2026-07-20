@@ -169,7 +169,7 @@ M12 尚未 commit、push、tag 或 release。
 
 ## M15：Desktop 内部试用版
 
-状态：`PILOT_REF_AVAILABLE_UNPUBLISHED_INSTALLER_REBUILD_AND_OPERATOR_ACCEPTANCE_PENDING`。
+状态：`PILOT_REF_AVAILABLE_UNPUBLISHED_FRESH_INSTALL_NETWORK_AND_OPERATOR_ACCEPTANCE_PENDING`。
 
 已实现：
 
@@ -184,9 +184,10 @@ M12 尚未 commit、push、tag 或 release。
 剩余完成门禁：
 
 - 方案 A 已完成：实现提交 `25e26df` 已推送到可获取的 origin pilot ref。
-- install stamp 和 NSIS 重建已完成：固定到 `5e87c865c7fe105374300042c73d1cb1dd4ad746`，`dirty=false`。
-- 隔离 fresh-install 首次引导因 `raw.githubusercontent.com` DNS 解析失败而停止；网络恢复后原样
-  复验 runtime 获取、Product Creative user-plugin 发现和 backend → bundle → route → API 全链。
+- 首次安装修复 `4f74ef3` 已推送：stamp 记录 `cynic12138/hermes-agent`，安装脚本随 Desktop 壳
+  打包且拒绝非法仓库 slug，不再依赖 `raw.githubusercontent.com`。
+- 新 NSIS 固定到 `4f74ef3`、`dirty=false`；隔离 fresh-install 已进入 fork HTTPS clone，但连接建立后
+  无数据增长。网络可持续传输后复验 runtime、user-plugin 和 backend → bundle → route → API 全链。
 - 一名内部运营人员在可复现安装形态中完成 onboarding → 自然语言任务 → 三节点审阅 → 中断恢复 → 反馈/学习全链。
 - 由产品/内容负责人记录可发布质量 Rubric 和接受/修改结论。
 - 证据与操作脚本：`docs/M15_DESKTOP_INTERNAL_PILOT_IMPLEMENTATION.md`。
