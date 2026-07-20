@@ -2,12 +2,12 @@
 
 - 最后更新：2026-07-20
 - 分支：`product-creative-rebaseline-20260716`
-- M11–M15 实现与测试提交：`25e26df`；首次安装修复：`4f74ef3`；进入项目时必须重新运行 `git rev-parse HEAD`
+- M11–M15 实现与测试提交：`25e26df`；打包深链修复/验收代码基线：`a0081dd`；进入项目时必须重新运行 `git rev-parse HEAD`
 - M9.1 实现基线：`83b4e8f`
 - 当前阶段：M14 自动媒体 QA、返修与学习质量已达到
   `DONE_IN_PILOT_REF_UNPUBLISHED_LIVE_GATE_AND_USER_ACCEPTANCE_PENDING`
 - M15 Desktop 状态：
-  `PILOT_REF_AVAILABLE_UNPUBLISHED_FRESH_INSTALL_NETWORK_AND_OPERATOR_ACCEPTANCE_PENDING`
+  `PACKAGED_FRESH_INSTALL_AND_PLUGIN_UI_ACCEPTED_UNPUBLISHED_OPERATOR_FULL_FLOW_PENDING`
 - 当前 Live Gate：`LOCAL_GATE_PASSED / EXPLICIT_EXTERNAL_DISCLOSURE_APPROVED / TENANT_POLICY_BLOCKED`；
   当前任务、策略阻塞、已有真实 `REPAIR` 案例和恢复步骤见 `docs/M14_LIVE_GATE_20260717.md`
 
@@ -31,6 +31,7 @@
 16. `docs/M14_AUTOMATIC_MEDIA_QA_REPAIR_IMPLEMENTATION.md`
 17. `docs/M14_LIVE_GATE_20260717.md`
 18. `docs/M15_DESKTOP_INTERNAL_PILOT_IMPLEMENTATION.md`
+19. `docs/M15_PACKAGED_SEED_PLUGIN_ACCEPTANCE_20260720.md`
 
 M10 必读 `docs/M10_PRODUCT_COGNITION_AUTONOMOUS_CREATION_IMPLEMENTATION.md`、`docs/M10_LIVE_PROVIDER_AND_SOURCE_INTEGRATION.md` 和 `docs/plans/2026-07-14-m10-zero-to-product-brain-plan.md`。M9.1 SDK/插件 UI/分发再读 `docs/M9_1_DESKTOP_PLUGIN_SDK_IMPLEMENTATION.md`。
 
@@ -106,20 +107,20 @@ M10 必读 `docs/M10_PRODUCT_COGNITION_AUTONOMOUS_CREATION_IMPLEMENTATION.md`、
   恢复、产品事实/创意方向/成片质量三节点、Settings 无密钥诊断和 workspace/locale/cleanup
   隔离。分发扫描、enabled user-plugin 离线安装和 Windows NSIS Desktop 壳构建通过。
 - M15 bundle SHA-256 为
-  `8291e28588ca06d5a1613c05f30699032540ff42c33b5dfce2694ed60adf9937`；首次安装修复后的安装器
-  SHA-256 为 `283733CDCE6EA31EB87AADD8CD3C7C6CD81715241A1E7AC70ACF5BA79B1AC381`。
-- 本机隔离目录 `m15-pilot-native-20260717-1720` 已证明“打包壳 + worktree runtime +
-  enabled user plugin”可启动 backend、发现 bundle、返回诊断并安全 onboarding；Canonical Brain
-  未改变。方案 A 和首次安装修复 `4f74ef3` 已推送到 origin pilot ref。新 EXE 同时携带
-  `install.ps1/install.sh`，stamp 固定到 `cynic12138/hermes-agent@4f74ef3`，且 `dirty=false`。
+  `8291e28588ca06d5a1613c05f30699032540ff42c33b5dfce2694ed60adf9937`；最终 fresh-install 安装器
+  SHA-256 为 `90BCE51012171CDD151FFFB2E782F351E89B86035A76627B04FEF79870EF7175`。
+- `C:\tmp\hermes-desktop-fresh-install-PFu67p` 已完成固定 `a0081dd` runtime、enabled seed user plugin、
+  backend、认证 discovery/bundle/diagnostics、插件深链及 Overview/Tasks/Review/Assets/Learning 真实
+  Electron 验收。real-provider 保持关闭，XHS/Douyin 可选离线，外部调用为 0。完整证据见
+  `docs/M15_PACKAGED_SEED_PLUGIN_ACCEPTANCE_20260720.md`。
 
 ## 当前待办/下一入口
 
-方案 A、仓库来源修复和 NSIS 重建均完成。新安装包不再访问 GitHub Raw，隔离首次启动已进入
-`https://github.com/cynic12138/hermes-agent.git` shallow clone；连接建立但 45 秒内仓库字节没有
-增长，已停止测试。下一工程动作是在 HTTPS clone 可持续传输的网络环境原样重跑。随后内部运营人员按
-`docs/M15_DESKTOP_INTERNAL_PILOT_IMPLEMENTATION.md` 的脚本
-完成全链并记录接受/修改结论。两个门禁都完成前不进入 M16。
+M15 packaged fresh-install 与插件 UI 已通过。下一工程动作是隔离 Electron `userData`/最近项目状态，
+并用正式 Hermes 文件级前后快照关闭“验收窗口出现宿主状态时间戳变化”的未知风险。之后由内部运营人员按
+`docs/M15_DESKTOP_INTERNAL_PILOT_IMPLEMENTATION.md` 和
+`docs/M15_PACKAGED_SEED_PLUGIN_ACCEPTANCE_20260720.md` 完成自然语言全链并记录接受/修改结论。
+M15 人工门禁和 M14 独立真实样片门禁都完成前不进入 M16。
 
 M14 真实动态样片仍是独立门禁：用户可在 Codex 外部生成 product-free Seedance 镜头，
 Codex 只做本地导入、Product Plate 合成、QA/返修；不得绕过租户披露策略。M15 UI 验收
@@ -130,9 +131,10 @@ Codex 只做本地导入、Product Plate 合成、QA/返修；不得绕过租户
 - M9.1 及 M11–M15 实现均已随 pilot 分支推送；自动发布未触发，独立分发仓库未更新。
 - 全量宿主 UI 套件有多项与 M9.1 无关的既有失败；定向 M9.1 测试与 Node 22 build 已通过。
 - XHS 旧账号 `-104` 已解决；当前限制是自然语言 E2E 中 `ctx.llm` 不可用，导致深度 LLM 摘要包未生成，但 snapshot 与规则候选均已保存。
-- M13 已提供 ffmpeg/ffprobe 路径发现和 readiness；M15 已能构建通用 Hermes Desktop
-  NSIS 壳，新 stamp 已固定到 fork 的远端 pilot commit，包内 bootstrap 已移除 GitHub Raw 前置依赖。
-  fresh-install 仍因 GitHub HTTPS clone 停滞而未完成；媒体工具可移植性和独立品牌安装包仍未验收。
+- M13 已提供 ffmpeg/ffprobe 路径发现和 readiness；M15 通用 Hermes Desktop NSIS、固定 fork
+  runtime、seed plugin 和真实 UI 已通过。媒体工具可移植性和独立品牌安装包仍未验收。
+- fresh-install 的 runtime/workspace/plugin 均在 `C:\tmp`，但正式 Hermes 目录的部分宿主状态文件
+  在验收窗口出现新时间戳且原因未知；未回滚。必须先增加 Electron user-data 隔离/断言。
 - 豆包图片带“AI生成”水印；Seedance 会生成式重绘包装，只可作为链路审计，不能宣传为包装保真。
 - M10 的旧 DONE 口径已被真实样片推翻：Provider 链路虽成功，但创意和包装质量未通过。不得再把“获得可播放文件”写成 M10 完成。
 - `verify_m2_workflow_run.ps1` 本轮未完成；不得写成通过。
@@ -144,6 +146,8 @@ Codex 只做本地导入、Product Plate 合成、QA/返修；不得绕过租户
   真实 VLM 动作判断尚未完成联合 Live Gate。
 - Windows 深层测试临时目录可能触发 legacy `MAX_PATH`；媒体 E2E 使用短
   `C:\tmp\...` 隔离目录。
+- 新建项目对话框的长目录路径会导致横向溢出；当前不阻断链路，但属于运营 UX 缺陷。
+- 本机最终回归为 Node 24.x；正式发布仍需 Node 22 CI 权威门禁。
 
 ## 关键决策
 

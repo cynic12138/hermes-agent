@@ -4,9 +4,9 @@
 
 - 初始实施：2026-07-17；方案 A 收口：2026-07-20（Asia/Shanghai）
 - 分支：`product-creative-rebaseline-20260716`
-- M11–M15 实现与测试提交：`25e26df`；首次安装修复：`4f74ef3`
+- M11–M15 实现与测试提交：`25e26df`；打包深链修复/验收代码基线：`a0081dd`
 - 插件版本：`9.1.0-alpha.1`
-- 状态：`PILOT_REF_AVAILABLE / INSTALLER_REBUILT / FRESH_INSTALL_NETWORK_BLOCKED / UNPUBLISHED / INTERNAL_OPERATOR_ACCEPTANCE_PENDING`
+- 状态：`PACKAGED_FRESH_INSTALL_AND_PLUGIN_UI_ACCEPTED / UNPUBLISHED / INTERNAL_OPERATOR_FULL_FLOW_PENDING`
 - 源码真源：`.hermes/plugins/product_creative/`
 - 外部分发仓库仍是生成目标，不是业务源码真源。
 
@@ -125,23 +125,22 @@ Desktop task composer
 - UI 源码：`.hermes/plugins/product_creative/desktop_ui/index.js`
 - 生成 bundle：`.hermes/plugins/product_creative/dashboard/dist/desktop.js`
 - bundle SHA-256：`8291e28588ca06d5a1613c05f30699032540ff42c33b5dfce2694ed60adf9937`
-- 最终临时分发目录：`C:\data\work file\hermers-agent for me\m15-dist-20260717-1658`
-- 分发 payload SHA-256：`155dbe5021b7af2f89edcf3349444528c690f9dbcf42f5df291c9d66af0eba9d`
-- 分发 source commit：`0aa95637213f02eca2ef8f619daaf771150a7e11`（dirty worktree，不能用于正式发布）
+- 最终 packaged seed payload SHA-256：`e75aeb88253b1ec55ea961345961ac7287d981ee2e1cff135a14211586657ad2`
+- 分发 source commit：`a0081ddfbe966473b996f8f6e3a879ab6720888f`（clean）
 - Windows Desktop 壳构建产物：`apps/desktop/release/Hermes-0.17.0-win-x64.exe`
-- 首次安装修复后的安装器大小：117,691,265 bytes
-- 首次安装修复后的安装器 SHA-256：`283733CDCE6EA31EB87AADD8CD3C7C6CD81715241A1E7AC70ACF5BA79B1AC381`
-- install stamp commit：`4f74ef396fc75600e049f82bfe778d67bc15633a`
+- 最终 fresh-install 安装器大小：118,184,438 bytes
+- 最终 fresh-install 安装器 SHA-256：`90BCE51012171CDD151FFFB2E782F351E89B86035A76627B04FEF79870EF7175`
+- install stamp commit：`a0081ddfbe966473b996f8f6e3a879ab6720888f`
 - install stamp：repository `cynic12138/hermes-agent`、branch
   `product-creative-rebaseline-20260716`、`dirty=false`、source `local`
 
 该文件复用现有 Hermes Desktop Electron/NSIS 薄安装管线。第一次受限构建因不能创建 `%LOCALAPPDATA%\electron-builder` 缓存而失败；取得本机缓存写权限后成功。cleanup 修复后又重新构建并重新计算上述哈希，避免交付旧 renderer。
 
-重要边界：NSIS 仍是薄 Desktop 壳，但 `4f74ef3` 将受校验的 `install.ps1/install.sh` 作为
+重要边界：NSIS 仍是薄 Desktop 壳；受校验的 `install.ps1/install.sh` 作为
 `extraResources/bootstrap` 随包分发，并在 stamp 中加入 GitHub `owner/repository`。bootstrap 优先使用
 包内脚本，再按 `cynic12138/hermes-agent@commit` 克隆 runtime；GitHub Raw 仅保留给旧包的兼容回退。
-fresh-install 仍必须完成固定 runtime、enabled Product Creative user plugin 和 backend 启动，不能仅凭
-干净 stamp、包内脚本和安装器文件关闭门禁。
+fresh-install 已完成固定 runtime、enabled Product Creative user plugin、backend、认证 API 和真实
+Electron 五视图验收。完整证据见 `docs/M15_PACKAGED_SEED_PLUGIN_ACCEPTANCE_20260720.md`。
 
 ## 8. 实际验证
 
@@ -168,7 +167,7 @@ fresh-install 仍必须完成固定 runtime、enabled Product Creative user plug
   `C:\data\work file\hermers-agent for me\m15-precommit-dist-20260720-1005` 验证通过。
 - Windows NSIS Desktop 壳构建：通过，并生成 blockmap。
 - Packaged payload smoke validation：通过；确认 `install-stamp` 指向
-  `cynic12138/hermes-agent@4f74ef396fc7`、`dirty=false`，包内 `bootstrap/install.ps1` 和
+  `cynic12138/hermes-agent@a0081ddfbe96`、`dirty=false`，包内 `bootstrap/install.ps1` 和
   `bootstrap/install.sh`、renderer，以及 Windows `conpty.node`、`conpty_console_list.node`、
   `pty.node` 均已打包。
 
@@ -181,6 +180,22 @@ fresh-install 仍必须完成固定 runtime、enabled Product Creative user plug
 - 在打包 backend 中创建隔离产品 `m15-pilot-product` 成功：产品数变为 1、Brain version 为 1、描述进入 Evidence，Canonical Product Brain 未改变且未泄漏描述。
 - 该证据证明“打包 Desktop 壳 + 当前 worktree runtime + 已安装分发插件”的本地组合可运行；不证明薄安装器能在另一台干净机器自动取得未提交 runtime。
 - Windows UI 自动操作权限请求超时，未形成运营人员可见页面的人工点击证据，也未盲目点击。
+
+### 最终 packaged fresh-install 与真实 Electron 验收
+
+- 用户授权本次隔离 fresh-install 进程使用 `127.0.0.1:7897`；代理未写入用户环境。
+- 沙箱 `C:\tmp\hermes-desktop-fresh-install-PFu67p` 成功取得固定提交 `a0081dd`，完成 Python 3.11、
+  Node、Playwright、skills 和系统依赖阶段。
+- seed installer 验证并启用 `product_creative@9.1.0-alpha.1`，安装回执记录 payload hash 和 source commit。
+- backend 在隔离 home 启动；认证 discovery/bundle/diagnostics 和 workspace header 实测通过。
+- 第一次真实 UI 暴露插件深链被 `:sessionId` 当作聊天路由；`a0081dd` 用通用 route surface 修复，
+  重建安装器和 fresh-install 后复验通过。
+- 真实 Electron 中创建隔离 workspace 和临时 Product Brain V1；Overview、Tasks、Review、Assets、
+  Learning 五视图均实际打开并显示正确空态/版本状态。
+- 诊断显示核心凭据仅为存在性、ffmpeg/ffprobe READY、real-provider 显式关闭、XHS/Douyin
+  OPTIONAL_OFFLINE；外部调用与费用均为 0。
+- fresh-install 后最终回归：Node `29 passed`、Desktop UI `25 passed`、Python `32 passed`、
+  M9 recovery 25/25、public surface 84/84、typecheck 通过。
 
 已知 warning：既有 CSS `text-*` 注释解析 warning、约 27 MB 主 chunk 体积 warning。最终安装器
 stamp 为 clean；未顺带修复两个非 M15 build warning。
@@ -236,26 +251,26 @@ stamp 为 clean；未顺带修复两个非 M15 build warning。
 
 ## 10. 已知限制与未完成门禁
 
-- **Fresh-install gate：**旧包三次因路由器 DNS 将 `raw.githubusercontent.com` 返回为 `0.0.0.0`
-  而停止；公开 DNS 查询能返回正常地址，hosts/WinHTTP proxy 无异常。新包已移除该前置依赖并成功使用
-  包内 `install.ps1`，通过 manifest、uv、Python、Git、Node 和 system-packages 阶段。随后 HTTPS
-  shallow clone 连接到 `github.com:443`，但 45 秒观察窗口内仓库保持 27,443 bytes、没有 HEAD，
-  因此安全停止隔离 Hermes 和 5 个 clone 子进程。未切换代理、镜像或写 hosts，待网络可持续传输后复验。
+- **Fresh-install gate：已通过。**旧包 Raw DNS 和无代理 HTTPS clone 停滞保留为历史证据；在用户
+  授权的进程级代理下，新包完成固定 runtime、seed plugin、backend、认证 API、路由和真实 UI 验收。
 - **Operator acceptance gate：**内部运营人员尚未在可运行的 Desktop 形态中亲自完成一次 onboarding → 自然语言任务 → 审阅 → 恢复 → 反馈全链，因此 M15 不能标记为最终 DONE。
-- 已在用户授权下两次执行 `test:desktop:fresh`：旧包暴露 Raw DNS 问题，新包证明包内 bootstrap
-  和 fork 路由生效，但 HTTPS clone 未完成；两者都不得记为 fresh-install 通过。
-  `test:desktop:existing` 仍未执行，因为它会读取并使用用户真实 Hermes 配置，需在人工试用时单独确认。
+- **Host user-data 隔离：**runtime/workspace/plugin 和日志均在 `C:\tmp`，但正式 Hermes 目录部分宿主
+  状态文件在验收窗口出现新时间戳，原因 `UNKNOWN`。未删除或回滚；必须增加 Electron `userData`/
+  最近项目状态隔离及文件级断言，关闭前不得承诺对正式 Hermes 零触碰。
+- `test:desktop:existing` 仍未执行，因为它会读取并使用用户真实 Hermes 配置，需在人工试用时单独确认。
 - M14 动态真实 Provider Live Gate 仍独立 pending；M15 UI 通过不能替代真实样片质量。
 - 主图上传复用 Hermes chat attachment，不是 Product Creative 页内文件选择器。
 - Settings 只诊断，不代替 Hermes 通用模型/凭据配置。
 - XHS/Douyin 是补充灵感来源，不是核心创作依赖。
 - 当前旧构建仍是通用 Hermes Desktop 壳，不是最终独立品牌 Creative Studio；新 pilot ref 已包含 Product Creative runtime。
 - 正式媒体工具可移植性仍需在干净机器安装验收；当前构建使用既有 Hermes Desktop 依赖。
+- 新建项目对话框在长目录路径下横向溢出，Create 按钮需水平滚动；属于已知运营 UX 缺陷。
+- 本机最终回归使用 Node 24.x；正式发布仍需 Node 22 CI。
 - M11–M15 实现与测试已提交并推送到 pilot branch；未合并 main、未 tag、未 release。
 
 ## 11. 内部运营人工试用脚本
 
-前置条件：重建薄安装器，使 stamp 指向可获取且包含 M15 的最终 pilot HEAD。旧 EXE 单独安装不满足该条件。
+前置条件：使用本记录中的 `a0081dd` 或更新的 clean 安装器，并先完成 Electron user-data 隔离确认。
 
 1. 记录 Git ref、Desktop 壳和插件分发 SHA-256，在非生产 workspace 安装并启动 Hermes Desktop。
 2. 打开 Product Creative；选择一个空 workspace。

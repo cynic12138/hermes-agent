@@ -2,14 +2,14 @@
 
 - 日期：2026-07-20
 - 分支：`product-creative-rebaseline-20260716`
-- M11–M15 实现与测试提交：`25e26df`；首次安装修复：`4f74ef3`；进入项目时运行 `git rev-parse HEAD` 重新确认当前提交
+- M11–M15 实现与测试提交：`25e26df`；打包深链修复/验收代码基线：`a0081dd`；进入项目时运行 `git rev-parse HEAD` 重新确认当前提交
 - M9.1 实现提交：`83b4e8f`
 - M10 实现提交：`33d096f`
 - 已提交阶段：M9.1 Desktop Plugin SDK 迁移（DONE、本地已提交）
 - 当前阶段：M13.1/M14.1 动态镜头生产与动作质量门禁已达到
   `DONE_IN_PILOT_REF_UNPUBLISHED_LIVE_GATE_AND_USER_ACCEPTANCE_PENDING`
 - M15 Desktop 内部试用状态：
-  `PILOT_REF_AVAILABLE_UNPUBLISHED_FRESH_INSTALL_NETWORK_AND_OPERATOR_ACCEPTANCE_PENDING`
+  `PACKAGED_FRESH_INSTALL_AND_PLUGIN_UI_ACCEPTED_UNPUBLISHED_OPERATOR_FULL_FLOW_PENDING`
 - 当前 Live Gate：`LOCAL_GATE_PASSED / EXPLICIT_EXTERNAL_DISCLOSURE_APPROVED / TENANT_POLICY_BLOCKED`；
   用户已明确授权，但 Codex 租户策略仍禁止外发 workspace 产品资料。本次调用数为 0。
   执行真源为
@@ -129,22 +129,24 @@
   校准仍待单独 Live Gate。用户尚未亲自验收一条 QA PASS 和一条自动返修案例。
 - M15 已完成无产品 onboarding、Evidence/Draft 安全摄入、自然语言任务入口、无 task ID
   恢复、三运营审阅节点、Settings 安全诊断、workspace/zh-CN/cleanup 隔离、插件分发和 NSIS
-  Desktop 壳构建。本地“打包壳 + 当前 worktree runtime + 隔离 user plugin”后端试运行通过；
-  包含 M15 的 origin pilot ref 已可获取。`4f74ef3` 修复了上游仓库硬编码，并把受校验的
-  `install.ps1/install.sh` 随 Desktop 壳打包；首次启动不再依赖 `raw.githubusercontent.com`。
-  新 install stamp 固定到 `cynic12138/hermes-agent@4f74ef3`，`dirty=false`。隔离 fresh-install
-  已通过 manifest、uv、Python、Git、Node 和系统工具阶段，但 HTTPS shallow clone 连接建立后
-  45 秒内仍停在 27,443 bytes、没有 HEAD，已安全停止，runtime 和插件发现仍待网络复验。
-- M15 定向证据：backend `6 passed`；Product Creative bundle `11 passed`；Desktop
-  routes/registry/page/Product Creative `22 passed`；bundle security `2 passed`；分发 bundle
-  `1 passed`；M10–M15/来源/分发组合 `207 passed`；typecheck/build、分发扫描、离线安装
-  和 NSIS 壳构建均通过；packaged payload 的 install-stamp、renderer 与三个 node-pty 二进制
-  已通过只读 smoke validation；该旧 stamp 同时证明旧 EXE 不包含当前 M15 runtime。实施真源为
-  `docs/M15_DESKTOP_INTERNAL_PILOT_IMPLEMENTATION.md`。
+  Desktop 壳构建。新安装器固定到 `cynic12138/hermes-agent@a0081dd`、`dirty=false`，在仅当前
+  fresh-install 进程使用 `127.0.0.1:7897` 的条件下完成固定 runtime clone、Python/Node/浏览器
+  依赖、seed user-plugin 安装、backend 启动、认证 API 和真实 Electron 五视图验收。
+- 真实 UI 首次暴露 `:sessionId` 吞掉动态插件路由；`a0081dd` 以通用 route surface 修复，重新
+  构建和 fresh-install 后 Product Creative 深链正常。验收沙箱只创建临时 Product Brain V1，
+  real-provider 保持关闭，XHS/Douyin 为可选离线，没有外部调用或费用。
+- M15 fresh-install 后最终证据：Node bootstrap/seed/staging/stamp `29 passed`；Desktop
+  routes/registry/page/Product Creative/distribution `25 passed`；Python install/API/distribution/
+  M15 backend `32 passed`；M9 recovery 25/25、public surface 84/84、typecheck 和 production
+  build/NSIS 通过。安装器 SHA-256 为
+  `90BCE51012171CDD151FFFB2E782F351E89B86035A76627B04FEF79870EF7175`；插件 bundle SHA-256
+  为 `8291e28588ca06d5a1613c05f30699032540ff42c33b5dfce2694ed60adf9937`。实施真源为
+  `docs/M15_DESKTOP_INTERNAL_PILOT_IMPLEMENTATION.md`，打包验收真源为
+  `docs/M15_PACKAGED_SEED_PLUGIN_ACCEPTANCE_20260720.md`。
 
 ## PLANNED
 
-- M15 fresh-install 网络复验、人工运营试用和 M16 母创意受控规模化。完整路线见 `docs/PRODUCT_AGENT_DIRECTION.md`。
+- M15 正式 Electron user-data 隔离修复/确认、内部运营人工全链试用和 M16 母创意受控规模化。完整路线见 `docs/PRODUCT_AGENT_DIRECTION.md`。
 - M15 人工 Gate 通过前不进入 M16；M14 真实动态样片 Gate 继续独立完成，不扩展新 Provider 或批量生产。
 
 ## BLOCKED
@@ -154,8 +156,9 @@
 - M13 已进入 origin pilot ref，状态为 `DONE_IN_PILOT_REF_UNPUBLISHED_LIVE_GATE_PENDING`。
 - M14 已标记
   `DONE_IN_PILOT_REF_UNPUBLISHED_LIVE_GATE_AND_USER_ACCEPTANCE_PENDING`。
-- M15 功能、插件分发和本地打包组合试运行已进入 pilot ref；GitHub Raw 依赖已从新安装包移除，
-  但隔离 fresh-install 仍被 `github.com` HTTPS clone 无数据进展阻塞，内部运营人工全链也尚未完成。
+- M15 packaged fresh-install 和插件 UI 已通过；内部运营自然语言任务、恢复、反馈/学习全链尚未完成。
+- fresh-install 的 runtime/workspace/plugin 已隔离到 `C:\tmp`，但正式 Hermes 目录在验收窗口出现
+  宿主状态文件时间戳变化，原因 `UNKNOWN`；关闭 Electron user-data 隔离风险前不得宣称零触碰正式宿主状态。
 - 正式可发布产品视频仍被 M13/M14 联合真实 Provider/VLM Live Gate 和用户质量验收阻塞。
 
 ## DEPRECATED
@@ -189,6 +192,8 @@
 - M14 没有配置真实 OCR/VLM adapter 时会进入 HUMAN_REVIEW；离线 fixture 证明契约、
   编排和返修边界，不证明真实视觉模型质量。
 - Windows PowerShell 将中文 here-string 经标准输入传给 Python 时可能按旧代码页替换为 `?`；执行脚本必须显式设置 `$OutputEncoding` 和 `[Console]::OutputEncoding` 为 UTF-8，失败修订保留为证据。
+- M15 新建项目对话框在长目录路径下会横向溢出，Create 按钮需要水平滚动；不阻断插件链路，但影响内部运营体验。
+- 本机最终回归使用 Node 24.x；Node 22 仍是发布权威环境，正式 release workflow 尚未运行。
 
 ## 2026-07-16 产品方向重定标
 
@@ -218,13 +223,11 @@
 
 ## 下一步推荐
 
-方案 A 和首次安装修复已执行：Desktop/NSIS 已重建，install stamp 固定到
-`cynic12138/hermes-agent@4f74ef396fc75600e049f82bfe778d67bc15633a`，安装器 SHA-256 为
-`283733CDCE6EA31EB87AADD8CD3C7C6CD81715241A1E7AC70ACF5BA79B1AC381`。下一步在
-`github.com` HTTPS clone 能持续传输后，从全新隔离 `HERMES_HOME`/workspace/user-data 原样重跑
-fresh-install；无需修复 GitHub Raw DNS，也不得跳过固定提交校验。随后由一名内部运营人员按
-`docs/M15_DESKTOP_INTERNAL_PILOT_IMPLEMENTATION.md` 的脚本完成 onboarding、自然语言任务、
-三节点审阅、中断恢复和反馈学习，并由产品/内容负责人记录接受或修改结论。
+M15 packaged fresh-install、seed user-plugin、认证 API、动态路由和五视图已经通过。下一步先让
+安装器显式隔离 Electron `userData`/最近项目状态，并用文件级前后快照证明不会触碰正式 Hermes；
+随后由一名内部运营人员按 `docs/M15_DESKTOP_INTERNAL_PILOT_IMPLEMENTATION.md` 和
+`docs/M15_PACKAGED_SEED_PLUGIN_ACCEPTANCE_20260720.md` 完成 onboarding、自然语言任务、三节点
+审阅、中断恢复和反馈学习，并由产品/内容负责人记录接受或修改结论。
 
 M14 真实动态样片仍是独立质量 Gate：用户可在 Codex 外部按 product-free Prompt 生成
 Seedance 结果并放入本地验收目录，再按 `docs/M14_LIVE_GATE_20260717.md` 完成本地裁剪、
@@ -237,5 +240,6 @@ M13.1 动态镜头与动作门禁见 `docs/M13_1_DYNAMIC_SHOT_PRODUCTION_IMPLEME
 M14 实施与恢复细节见 `docs/M14_AUTOMATIC_MEDIA_QA_REPAIR_IMPLEMENTATION.md`。
 M14 真实执行与中断恢复见 `docs/M14_LIVE_GATE_20260717.md`。
 M15 Desktop 内部试用实施与人工验收见 `docs/M15_DESKTOP_INTERNAL_PILOT_IMPLEMENTATION.md`。
+M15 打包安装、真实 Electron 和 seed user-plugin 验收见 `docs/M15_PACKAGED_SEED_PLUGIN_ACCEPTANCE_20260720.md`。
 
 待确认问题见 `docs/OPEN_QUESTIONS.md`。

@@ -5,22 +5,23 @@
 ## Goal and current boundary
 
 - 目标：把优秀运营人员的产品理解、灵感研究、创意决策、分镜制作、模型调用、质量筛选和反馈复盘，沉淀为围绕具体产品长期工作的专业 AI 创意生产系统。
-- 已提交基线：M9.1 `83b4e8f`；M11–M15 实现与测试提交 `25e26df`。分支 `product-creative-rebaseline-20260716` 已推送到 origin；未合并 main、未 tag、未 release。
+- 已提交基线：M9.1 `83b4e8f`；M11–M15 实现与测试提交 `25e26df`；打包深链修复 `a0081dd`。分支 `product-creative-rebaseline-20260716` 已推送到 origin；未合并 main、未 tag、未 release。
 - 当前重建分支：`product-creative-rebaseline-20260716`；历史重建起点 `d7d6ec0bf5a4ae9a1bc2377db668ed07a8a87c0b`。进入项目时运行 `git rev-parse HEAD`，不得依赖文档中的旧 HEAD。原 `product-creative-runtime` 脏工作区只作受保护证据，不再作为开发基线。
 - 当前基线：M10.1 Live 能力已选择性迁移并通过定向测试；周十五产品已建立严格证据优先 workspace。技术链路可运行，但现有样片的创意质量与包装生成质量不合格，不能记为产品完成。
 - 当前 MVP 状态：M13.1/M14.1 动态镜头生产与动作质量门禁已达到
   `DONE_IN_PILOT_REF_UNPUBLISHED_LIVE_GATE_AND_USER_ACCEPTANCE_PENDING`；
   M15 Desktop 内部试用为
-  `PILOT_REF_AVAILABLE_UNPUBLISHED_INSTALLER_REBUILD_AND_OPERATOR_ACCEPTANCE_PENDING`。
+  `PACKAGED_FRESH_INSTALL_AND_PLUGIN_UI_ACCEPTED_UNPUBLISHED_OPERATOR_FULL_FLOW_PENDING`。
 - M15 已提供首产品 onboarding、自然语言任务入口、无 task ID 恢复、三个运营审阅节点、
   安全环境诊断、workspace/zh-CN/cleanup 隔离、离线插件安装和 Windows NSIS 桌面壳构建。
-  本地“打包桌面壳 + runtime + 隔离 user plugin”试运行后端通过；包含 M15 的 origin pilot ref
-  已可获取，但旧薄安装器的 install stamp 仍指向 `0aa9563`，必须重建并完成 fresh-install 验证。
+  新 NSIS 已固定到 `a0081dd`，隔离 fresh-install、seed user-plugin、认证 API、动态插件路由和
+  Overview/Tasks/Review/Assets/Learning 真实 Electron 验收通过；仍缺内部运营自然语言全链验收。
 - 当前两个独立门禁：M14 本地 Gate 已通过且用户已明确授权，但 Codex 租户级策略禁止把 workspace
   产品图片和提示词发送给外部 Provider；不得绕过。已有真实媒体已形成一条 `REPAIR` 案例，
-  仍缺真实 QA PASS 和返修后生成；M15 仍缺指向新 pilot ref 的安装器验证和内部运营全链试用。M14 执行与恢复真源为
+  仍缺真实 QA PASS 和返修后生成；M15 仅剩内部运营全链试用和正式 user-data 隔离确认。M14 执行与恢复真源为
   `docs/M14_LIVE_GATE_20260717.md`，M15 实施与人工脚本真源为
-  `docs/M15_DESKTOP_INTERNAL_PILOT_IMPLEMENTATION.md`。
+  `docs/M15_DESKTOP_INTERNAL_PILOT_IMPLEMENTATION.md`；打包验收证据为
+  `docs/M15_PACKAGED_SEED_PLUGIN_ACCEPTANCE_20260720.md`。
 - 暂不做：Theme Brain、GEO/自动发帖、自动投流/效果分析、无边界多 Agent 群、完整创作画布、云/多租户扩展，除非用户批准。
 
 ## Key paths and stack
@@ -67,7 +68,7 @@ npm.cmd --prefix apps/desktop run build
 
 ## Fast handoff index
 
-依次读取：`AGENTS.md`、`docs/PRODUCT_AGENT_DIRECTION.md`、`docs/AI_HANDOFF.md`、`docs/PROJECT_STATE.md`、`docs/MVP_SCOPE.md`、`docs/ARCHITECTURE_CURRENT.md`。本次重建再读 `docs/REBASELINE_AND_CLEANUP_20260716.md`；M0–M8 回顾读 `docs/history/product-creative-legacy/README.md`；周十五严格基线读 `docs/product-bases/zhou-shiwu-honeydew/STRICT_BASELINE.md`；M11 实现读 `docs/M11_PROFESSIONAL_CREATIVE_WORKFLOW_IMPLEMENTATION.md`，用户验收证据读 `docs/reviews/M11_ZHOU_SHIWU_CREATIVE_PACK_REVIEW.md`；M12 实现与恢复读 `docs/M12_PROFESSIONAL_BUSINESS_SKILLS_IMPLEMENTATION.md`；M13 媒体生产读 `docs/M13_RELIABLE_MEDIA_PRODUCTION_IMPLEMENTATION.md`；M13.1 动态镜头、冻结与动作门禁读 `docs/M13_1_DYNAMIC_SHOT_PRODUCTION_IMPLEMENTATION.md`；M14 QA 读 `docs/M14_AUTOMATIC_MEDIA_QA_REPAIR_IMPLEMENTATION.md`，真实执行和中断恢复读 `docs/M14_LIVE_GATE_20260717.md`；M15 Desktop 内部试用读 `docs/M15_DESKTOP_INTERNAL_PILOT_IMPLEMENTATION.md`。当前先重建并验证指向 origin pilot ref 的 M15 安装形态，再完成人工全链试用；M14 真实动态样片 Gate 继续独立保留。
+依次读取：`AGENTS.md`、`docs/PRODUCT_AGENT_DIRECTION.md`、`docs/AI_HANDOFF.md`、`docs/PROJECT_STATE.md`、`docs/MVP_SCOPE.md`、`docs/ARCHITECTURE_CURRENT.md`。本次重建再读 `docs/REBASELINE_AND_CLEANUP_20260716.md`；M0–M8 回顾读 `docs/history/product-creative-legacy/README.md`；周十五严格基线读 `docs/product-bases/zhou-shiwu-honeydew/STRICT_BASELINE.md`；M11 实现读 `docs/M11_PROFESSIONAL_CREATIVE_WORKFLOW_IMPLEMENTATION.md`，用户验收证据读 `docs/reviews/M11_ZHOU_SHIWU_CREATIVE_PACK_REVIEW.md`；M12 实现与恢复读 `docs/M12_PROFESSIONAL_BUSINESS_SKILLS_IMPLEMENTATION.md`；M13 媒体生产读 `docs/M13_RELIABLE_MEDIA_PRODUCTION_IMPLEMENTATION.md`；M13.1 动态镜头、冻结与动作门禁读 `docs/M13_1_DYNAMIC_SHOT_PRODUCTION_IMPLEMENTATION.md`；M14 QA 读 `docs/M14_AUTOMATIC_MEDIA_QA_REPAIR_IMPLEMENTATION.md`，真实执行和中断恢复读 `docs/M14_LIVE_GATE_20260717.md`；M15 Desktop 实现读 `docs/M15_DESKTOP_INTERNAL_PILOT_IMPLEMENTATION.md`，最新打包验收读 `docs/M15_PACKAGED_SEED_PLUGIN_ACCEPTANCE_20260720.md`。当前先关闭正式 Electron user-data 隔离风险，再完成内部运营自然语言全链试用；M14 真实动态样片 Gate 继续独立保留。
 
 ---
 

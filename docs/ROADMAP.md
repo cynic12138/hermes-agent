@@ -169,7 +169,7 @@ M12 尚未 commit、push、tag 或 release。
 
 ## M15：Desktop 内部试用版
 
-状态：`PILOT_REF_AVAILABLE_UNPUBLISHED_FRESH_INSTALL_NETWORK_AND_OPERATOR_ACCEPTANCE_PENDING`。
+状态：`PACKAGED_FRESH_INSTALL_AND_PLUGIN_UI_ACCEPTED_UNPUBLISHED_OPERATOR_FULL_FLOW_PENDING`。
 
 已实现：
 
@@ -180,17 +180,19 @@ M12 尚未 commit、push、tag 或 release。
 - workspace、`zh-CN` 和 cleanup 隔离；cleanup RED→GREEN 修复了旧 DOM 仍可触发聊天的问题。
 - 分发扫描、版本/哈希、enabled user-plugin 离线安装和 Windows NSIS Desktop 壳构建通过。
 - 本地“打包壳 + 当前 worktree runtime + 隔离 user plugin”后端、bundle、诊断和 onboarding 通过。
+- 新 NSIS 固定到 `a0081dd`，通过代理仅限当前进程的隔离 fresh-install；固定 runtime、seed
+  user-plugin、认证 API、动态插件深链和 Overview/Tasks/Review/Assets/Learning 真实 Electron 验收通过。
+- 首次真实 UI 发现 `:sessionId` 吞掉插件路由；`a0081dd` 以通用 route surface 修复并完成重装复验。
 
 剩余完成门禁：
 
-- 方案 A 已完成：实现提交 `25e26df` 已推送到可获取的 origin pilot ref。
-- 首次安装修复 `4f74ef3` 已推送：stamp 记录 `cynic12138/hermes-agent`，安装脚本随 Desktop 壳
-  打包且拒绝非法仓库 slug，不再依赖 `raw.githubusercontent.com`。
-- 新 NSIS 固定到 `4f74ef3`、`dirty=false`；隔离 fresh-install 已进入 fork HTTPS clone，但连接建立后
-  无数据增长。网络可持续传输后复验 runtime、user-plugin 和 backend → bundle → route → API 全链。
+- 方案 A、仓库来源修复、`a0081dd` 深链修复和 packaged fresh-install 均已完成并推送至 origin pilot ref。
+- 修复/确认 Electron `userData` 与最近项目状态隔离；正式 Hermes 目录在验收窗口出现时间戳变化，
+  当前因果关系 `UNKNOWN`，在关闭前不得宣称零触碰。
 - 一名内部运营人员在可复现安装形态中完成 onboarding → 自然语言任务 → 三节点审阅 → 中断恢复 → 反馈/学习全链。
 - 由产品/内容负责人记录可发布质量 Rubric 和接受/修改结论。
-- 证据与操作脚本：`docs/M15_DESKTOP_INTERNAL_PILOT_IMPLEMENTATION.md`。
+- 证据与操作脚本：`docs/M15_DESKTOP_INTERNAL_PILOT_IMPLEMENTATION.md`、
+  `docs/M15_PACKAGED_SEED_PLUGIN_ACCEPTANCE_20260720.md`。
 
 M14 真实动态样片 Gate 与 M15 人工可用性 Gate 相互独立；不能用其中一个替代另一个。
 

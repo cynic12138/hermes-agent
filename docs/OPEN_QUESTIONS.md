@@ -5,7 +5,15 @@
 ### RESOLVED 2026-07-20：M15 干净机器应如何取得当前 runtime？
 
 - 决议：用户选择方案 A；实现提交 `25e26df` 已推送到 `origin/product-creative-rebaseline-20260716`。
-- 剩余：重建 install stamp、执行隔离 fresh-install 和运营人员人工全链。
+- 结果：`a0081dd` 安装器已完成隔离 fresh-install、seed user-plugin、认证 API 和真实 Electron 五视图验收。
+- 剩余：关闭 Electron user-data 隔离风险，并完成运营人员自然语言人工全链。
+
+### M15 安装器是否会触碰正式 Hermes 的宿主 user-data？
+
+- 为什么：runtime、workspace 和插件均在 `C:\tmp`，但正式 Hermes 目录的部分状态文件在验收窗口出现新时间戳。
+- 不确认的影响：无法向运营承诺测试安装与现有 Hermes 最近项目/窗口状态完全隔离。
+- 当前推断：Electron `userData` 或宿主最近项目状态可能未随 `HERMES_HOME` 一起隔离；因果证据不足，状态 `UNKNOWN`。
+- 推荐：为 fresh-install 进程显式指定独立 Electron user-data，测试前后对正式目录做文件级快照和零变化断言；不自动回滚用户数据。
 
 ### RESOLVED 2026-07-20：是否授权 push 重建基线与既有本地提交？
 
@@ -42,6 +50,6 @@
 
 ## P2
 
-- Windows M15 继续复用现有 Hermes Desktop Electron/NSIS 薄安装架构，但当前尚缺可获取 runtime ref/bootstrap；是否在产品稳定后制作独立品牌、预捆绑媒体工具和默认 Product Creative 的 fat installer，留到内部试用证据充分后决策。
+- Windows M15 已验证现有 Hermes Desktop Electron/NSIS 薄安装架构；是否在产品稳定后制作独立品牌、预捆绑媒体工具和默认 Product Creative 的 fat installer，留到内部试用证据充分后决策。
 - 是否需要 Web UI、多人/云/平台发布？推断：Final 1.0 后另行评估，置信度高。
 - 性能、可用性、保留、恢复时间等 NFR 目标是什么？当前 UNKNOWN。
