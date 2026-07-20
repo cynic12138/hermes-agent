@@ -5,7 +5,8 @@
 - 日期：2026-07-20（Asia/Shanghai）
 - 分支：`product-creative-rebaseline-20260716`
 - 验证时 HEAD：`93753c4d659480a81ee73f0246f692ef3cf70835`
-- 状态：`DONE_IN_LOCAL_BRANCH / UNPUBLISHED`
+- 实现提交：`f4c9807c1136a4cd7007e28b322511d901a9f880`
+- 状态：`DONE_IN_PILOT_REF / UNPUBLISHED`
 - 网络与外部调用：未联网；未调用 Provider、XHS、Douyin、DeepSeek 或生产 API。
 
 M15 fresh-install 的 Electron `userData` 与 `HERMES_HOME` 隔离风险已经关闭。测试模式现在采用 fail-closed：只要缺少隔离根、Electron user-data 或 Hermes home，或者任一路径不在系统临时沙箱内，主进程就不会进入正常 Hermes 初始化。普通 Desktop 启动不受此规则影响。
@@ -98,5 +99,5 @@ M15 fresh-install 的 Electron `userData` 与 `HERMES_HOME` 隔离风险已经�
 
 - 历史时间戳变化的具体来源不可追溯；本次结论是新构建在受控正/负向验证中实现零变化，不是声称历史变化从未发生。
 - 错误参数的人工启动会显示诊断提示并等待关闭；这是可见的 fail-closed，不是静默继续。
-- 当前修复和文档随本文所在提交进入本地分支；尚未推送、合并或发布。
+- 当前修复提交 `f4c9807` 已推送到 `origin/product-creative-rebaseline-20260716`；尚未合并、tag 或发布。
 - M15 下一门禁是内部运营人员完成 onboarding → 自然语言任务 → 三节点审阅 → 中断恢复 → 反馈/学习全链；M14 真实动态样片质量门禁继续独立保留。

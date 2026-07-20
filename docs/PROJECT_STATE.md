@@ -3,6 +3,7 @@
 - 日期：2026-07-20
 - 分支：`product-creative-rebaseline-20260716`
 - M11–M15 实现与测试提交：`25e26df`；打包深链修复/验收代码基线：`a0081dd`；进入项目时运行 `git rev-parse HEAD` 重新确认当前提交
+- M15 fresh-install 宿主数据隔离提交：`f4c9807`
 - M9.1 实现提交：`83b4e8f`
 - M10 实现提交：`33d096f`
 - 已提交阶段：M9.1 Desktop Plugin SDK 迁移（DONE、本地已提交）
@@ -10,7 +11,7 @@
   `DONE_IN_PILOT_REF_UNPUBLISHED_LIVE_GATE_AND_USER_ACCEPTANCE_PENDING`
 - M15 Desktop 内部试用状态：
   `PACKAGED_FRESH_INSTALL_AND_PLUGIN_UI_ACCEPTED_UNPUBLISHED_OPERATOR_FULL_FLOW_PENDING`
-- M15 fresh-install 宿主数据隔离：`DONE_IN_LOCAL_BRANCH_UNPUBLISHED`；验证时 HEAD
+- M15 fresh-install 宿主数据隔离：`DONE_IN_PILOT_REF_UNPUBLISHED`；验证时 HEAD
   `93753c4d659480a81ee73f0246f692ef3cf70835`，受保护的 37 个正式状态文件前后零差异
 - 当前 Live Gate：`LOCAL_GATE_PASSED / EXPLICIT_EXTERNAL_DISCLOSURE_APPROVED / TENANT_POLICY_BLOCKED`；
   用户已明确授权，但 Codex 租户策略仍禁止外发 workspace 产品资料。本次调用数为 0。

@@ -3,6 +3,7 @@
 - 最后更新：2026-07-20
 - 分支：`product-creative-rebaseline-20260716`
 - M11–M15 实现与测试提交：`25e26df`；打包深链修复/验收代码基线：`a0081dd`；进入项目时必须重新运行 `git rev-parse HEAD`
+- M15 fresh-install 宿主数据隔离提交：`f4c9807`，已推送到 origin pilot 分支
 - M9.1 实现基线：`83b4e8f`
 - 当前阶段：M14 自动媒体 QA、返修与学习质量已达到
   `DONE_IN_PILOT_REF_UNPUBLISHED_LIVE_GATE_AND_USER_ACCEPTANCE_PENDING`
@@ -116,7 +117,7 @@ M10 必读 `docs/M10_PRODUCT_COGNITION_AUTONOMOUS_CREATION_IMPLEMENTATION.md`、
   `docs/M15_PACKAGED_SEED_PLUGIN_ACCEPTANCE_20260720.md`。
 - fresh-install user-data 隔离已在当前 worktree 修复并实测：测试模式缺少、相对或越界路径即
   fail closed，Chromium 使用显式 `--user-data-dir`；临时沙箱有运行写入而受保护的 37 个正式
-  Hermes 状态文件前后差异为 0，残留测试进程为 0。实现随本文所在本地提交保存、尚未推送，证据见
+  Hermes 状态文件前后差异为 0，残留测试进程为 0。实现提交 `f4c9807` 已推送，证据见
   `docs/M15_FRESH_INSTALL_USER_DATA_ISOLATION_20260720.md`。
 
 ## 当前待办/下一入口
