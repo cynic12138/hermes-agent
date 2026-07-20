@@ -11,6 +11,7 @@
  *     "schemaVersion": 1,
  *     "commit":        "<40-char SHA>",
  *     "branch":        "<branch name>",
+ *     "repository":    "<GitHub owner/repository>",
  *     "builtAt":       "<ISO 8601 UTC timestamp>",
  *     "dirty":         true|false,
  *     "source":        "ci" | "local"
@@ -31,6 +32,8 @@ const path = require("path")
 const { execSync } = require("child_process")
 
 const STAMP_SCHEMA_VERSION = 1
+const DEFAULT_GITHUB_REPOSITORY = "NousResearch/hermes-agent"
+const GITHUB_REPOSITORY_RE = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/
 
 const DESKTOP_ROOT = path.resolve(__dirname, "..")
 const REPO_ROOT = path.resolve(DESKTOP_ROOT, "..", "..")
@@ -43,6 +46,25 @@ function tryExec(cmd, opts) {
   } catch {
     return null
   }
+}
+
+function repositoryFromRemoteUrl(remoteUrl) {
+  if (!remoteUrl) return null
+  const match = remoteUrl.match(/^(?:https:\/\/github\.com\/|git@github\.com:)([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+?)(?:\.git)?$/)
+  return match ? match[1] : null
+}
+
+function resolveRepository() {
+  const explicit = process.env.HERMES_DESKTOP_SOURCE_REPOSITORY
+  const githubRepository = process.env.GITHUB_REPOSITORY
+  const localRemote = tryExec("git config --get remote.origin.url", { cwd: REPO_ROOT })
+  const repository = explicit || githubRepository || repositoryFromRemoteUrl(localRemote) || DEFAULT_GITHUB_REPOSITORY
+  if (!GITHUB_REPOSITORY_RE.test(repository)) {
+    throw new Error(
+      `Invalid source repository '${repository}'. Expected a GitHub owner/repository slug.`
+    )
+  }
+  return repository
 }
 
 function fromCI() {
@@ -92,6 +114,14 @@ function main() {
     process.exit(1)
   }
 
+  let repository
+  try {
+    repository = resolveRepository()
+  } catch (error) {
+    console.error(`[write-build-stamp] ERROR: ${error.message}`)
+    process.exit(1)
+  }
+
   if (stamp.dirty) {
     console.warn(
       "[write-build-stamp] WARNING: working tree is dirty.\n" +
@@ -106,6 +136,7 @@ function main() {
     schemaVersion: STAMP_SCHEMA_VERSION,
     commit: stamp.commit,
     branch: stamp.branch,
+    repository,
     builtAt: new Date().toISOString(),
     dirty: stamp.dirty,
     source: stamp.source

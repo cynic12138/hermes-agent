@@ -104,12 +104,25 @@ function cachedScriptPath(hermesHome, commit) {
   return path.join(bootstrapCacheDir(hermesHome), `install-${commit}.${process.platform === 'win32' ? 'ps1' : 'sh'}`)
 }
 
-function downloadInstallScript(commit, destPath) {
+const DEFAULT_GITHUB_REPOSITORY = 'NousResearch/hermes-agent'
+const GITHUB_REPOSITORY_RE = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/
+
+function repositoryFromInstallStamp(installStamp) {
+  const repository = installStamp && installStamp.repository
+    ? installStamp.repository
+    : DEFAULT_GITHUB_REPOSITORY
+  if (!GITHUB_REPOSITORY_RE.test(repository)) {
+    throw new Error(`Invalid install stamp repository: ${repository}`)
+  }
+  return repository
+}
+
+function downloadInstallScript(repository, commit, destPath) {
   // Fetch from GitHub raw at the pinned commit. The raw URL with a SHA
   // is immutable (unlike a branch ref), so we don't need integrity
   // verification beyond "did the file we wrote pass a syntax probe."
   const scriptName = installScriptName()
-  const url = `https://raw.githubusercontent.com/NousResearch/hermes-agent/${commit}/scripts/${scriptName}`
+  const url = `https://raw.githubusercontent.com/${repository}/${commit}/scripts/${scriptName}`
   return new Promise((resolve, reject) => {
     fs.mkdirSync(path.dirname(destPath), { recursive: true })
     const tmpPath = destPath + '.tmp'
@@ -182,6 +195,7 @@ function downloadInstallScript(commit, destPath) {
 async function resolveInstallScript({
   installStamp,
   sourceRepoRoot,
+  bundledInstallScript,
   hermesHome,
   emit,
   _download = downloadInstallScript
@@ -202,6 +216,26 @@ async function resolveInstallScript({
         'This packaged build was produced without a valid build-time stamp.'
     )
   }
+  const repository = repositoryFromInstallStamp(installStamp)
+
+  if (bundledInstallScript) {
+    try {
+      await fsp.access(bundledInstallScript, fs.constants.R_OK)
+      emit({
+        type: 'log',
+        line: `[bootstrap] using bundled ${installScriptName()} at ${bundledInstallScript}`
+      })
+      return {
+        path: bundledInstallScript,
+        source: 'bundled',
+        commit: installStamp.commit,
+        kind: installScriptKind()
+      }
+    } catch {
+      // Older packages do not include the bootstrap script; continue to the
+      // cache/network compatibility path below.
+    }
+  }
 
   const cached = cachedScriptPath(hermesHome, installStamp.commit)
   try {
@@ -217,10 +251,12 @@ async function resolveInstallScript({
 
   emit({
     type: 'log',
-    line: `[bootstrap] fetching ${installScriptName()} for ${installStamp.commit.slice(0, 12)} from GitHub`
+    line:
+      `[bootstrap] fetching ${installScriptName()} for ${installStamp.commit.slice(0, 12)} ` +
+      `from GitHub repository ${repository}`
   })
   try {
-    await _download(installStamp.commit, cached)
+    await _download(repository, installStamp.commit, cached)
     emit({ type: 'log', line: `[bootstrap] saved to ${cached}` })
     return { path: cached, source: 'download', commit: installStamp.commit, kind: installScriptKind() }
   } catch (err) {
@@ -456,6 +492,9 @@ function spawnBash(scriptPath, args, { emit, stageName, abortSignal, hermesHome 
 // instead of falling back to install.ps1's default ($Branch = "main").
 function buildPinArgs(installStamp) {
   const args = []
+  if (installStamp) {
+    args.push('-Repository', repositoryFromInstallStamp(installStamp))
+  }
   if (installStamp && installStamp.commit) {
     args.push('-Commit', installStamp.commit)
   }
@@ -467,6 +506,9 @@ function buildPinArgs(installStamp) {
 
 function buildPosixPinArgs({ installStamp, activeRoot, hermesHome }) {
   const args = ['--dir', activeRoot, '--hermes-home', hermesHome]
+  if (installStamp) {
+    args.push('--repository', repositoryFromInstallStamp(installStamp))
+  }
   if (installStamp && installStamp.branch) {
     args.push('--branch', installStamp.branch)
   }
@@ -615,6 +657,7 @@ async function runBootstrap(opts) {
     installStamp,
     activeRoot,
     sourceRepoRoot,
+    bundledInstallScript,
     hermesHome,
     logRoot,
     onEvent,
@@ -665,7 +708,13 @@ async function runBootstrap(opts) {
 
   try {
     // 1. Resolve the platform installer.
-    const scriptInfo = await resolveInstallScript({ installStamp, sourceRepoRoot, hermesHome, emit })
+    const scriptInfo = await resolveInstallScript({
+      installStamp,
+      sourceRepoRoot,
+      bundledInstallScript,
+      hermesHome,
+      emit
+    })
     const installerKind = scriptInfo.kind || 'powershell'
 
     // 2. Fetch manifest
@@ -711,7 +760,8 @@ async function runBootstrap(opts) {
     // 4. Write the bootstrap-complete marker.
     const markerPayload = {
       pinnedCommit: installStamp ? installStamp.commit : null,
-      pinnedBranch: installStamp ? installStamp.branch : null
+      pinnedBranch: installStamp ? installStamp.branch : null,
+      repository: installStamp ? repositoryFromInstallStamp(installStamp) : null
     }
     const marker = typeof writeMarker === 'function' ? writeMarker(markerPayload) : markerPayload
     emit({ type: 'complete', marker })
@@ -735,5 +785,8 @@ module.exports = {
   resolveLocalInstallScript,
   resolveInstallScript,
   installedAgentInstallScript,
-  cachedScriptPath
+  cachedScriptPath,
+  buildPinArgs,
+  buildPosixPinArgs,
+  repositoryFromInstallStamp
 }

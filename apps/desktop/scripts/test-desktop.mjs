@@ -316,6 +316,18 @@ function validateBundle() {
   if (!stamp.branch || typeof stamp.branch !== 'string') {
     die(`install-stamp.json is missing the branch field: ${JSON.stringify(stamp)}`)
   }
+  if (!stamp.repository || !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(stamp.repository)) {
+    die(`install-stamp.json is missing a valid repository field: ${JSON.stringify(stamp)}`)
+  }
+
+  const bootstrapScript = path.join(
+    APP.resourcesPath,
+    'bootstrap',
+    PLATFORM === 'win32' ? 'install.ps1' : 'install.sh'
+  )
+  if (!exists(bootstrapScript)) {
+    die(`Missing packaged bootstrap installer: ${bootstrapScript}`)
+  }
 
   // Positive assertion: node-pty native deps shipped
   const native = expectedNativeDepPaths()

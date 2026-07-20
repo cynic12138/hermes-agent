@@ -229,7 +229,7 @@ const SOURCE_REPO_ROOT = path.resolve(APP_ROOT, '../..')
 // build hasn't been invoked, or schema mismatch). Callers must handle null.
 //
 // Schema:
-//   { schemaVersion: 1, commit, branch, builtAt, dirty, source }
+//   { schemaVersion: 1, commit, branch, repository, builtAt, dirty, source }
 const INSTALL_STAMP_SCHEMA_VERSION = 1
 function loadInstallStamp() {
   // Try packaged location first (resources/install-stamp.json), then the
@@ -255,6 +255,7 @@ function loadInstallStamp() {
           schemaVersion: parsed.schemaVersion,
           commit: parsed.commit,
           branch: parsed.branch || null,
+          repository: parsed.repository || null,
           builtAt: parsed.builtAt || null,
           dirty: Boolean(parsed.dirty),
           source: parsed.source || null,
@@ -3093,6 +3094,9 @@ async function ensureRuntime(backend) {
       installStamp: backend.installStamp,
       activeRoot: backend.activeRoot,
       sourceRepoRoot: SOURCE_REPO_ROOT,
+      bundledInstallScript: process.resourcesPath
+        ? path.join(process.resourcesPath, 'bootstrap', IS_WINDOWS ? 'install.ps1' : 'install.sh')
+        : null,
       hermesHome: HERMES_HOME,
       logRoot: path.join(HERMES_HOME, 'logs'),
       abortSignal: bootstrapAbortController.signal,

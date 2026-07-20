@@ -180,6 +180,14 @@
         "to": "install-stamp.json"
       },
       {
+        "from": "../../scripts/install.ps1",
+        "to": "bootstrap/install.ps1"
+      },
+      {
+        "from": "../../scripts/install.sh",
+        "to": "bootstrap/install.sh"
+      },
+      {
         "from": "build/native-deps",
         "to": "native-deps"
       },

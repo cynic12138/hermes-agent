@@ -8,7 +8,9 @@ const {
   runBootstrap,
   resolveInstallScript,
   installedAgentInstallScript,
-  cachedScriptPath
+  cachedScriptPath,
+  buildPinArgs,
+  buildPosixPinArgs
 } = require('./bootstrap-runner.cjs')
 
 const SCRIPT_NAME = process.platform === 'win32' ? 'install.ps1' : 'install.sh'
@@ -78,6 +80,114 @@ test('resolveInstallScript prefers a cached script without touching the network'
   } finally {
     fs.rmSync(home, { recursive: true, force: true })
   }
+})
+
+test('resolveInstallScript prefers the installer bundled with the desktop package', async () => {
+  const home = mkTmpHome()
+  try {
+    const bundled = path.join(home, 'packaged-bootstrap', SCRIPT_NAME)
+    fs.mkdirSync(path.dirname(bundled), { recursive: true })
+    fs.writeFileSync(bundled, '# packaged installer\n')
+    let downloaded = false
+
+    const result = await resolveInstallScript({
+      installStamp: {
+        commit: 'f'.repeat(40),
+        repository: 'cynic12138/hermes-agent'
+      },
+      sourceRepoRoot: null,
+      bundledInstallScript: bundled,
+      hermesHome: home,
+      emit: () => {},
+      _download: async () => {
+        downloaded = true
+      }
+    })
+
+    assert.equal(result.source, 'bundled')
+    assert.equal(result.path, bundled)
+    assert.equal(downloaded, false)
+  } finally {
+    fs.rmSync(home, { recursive: true, force: true })
+  }
+})
+
+test('resolveInstallScript downloads the installer from the repository pinned in the stamp', async () => {
+  const home = mkTmpHome()
+  try {
+    const commit = 'b'.repeat(40)
+    const repository = 'cynic12138/hermes-agent'
+    let downloadArgs = null
+
+    const result = await resolveInstallScript({
+      installStamp: { commit, repository },
+      sourceRepoRoot: null,
+      hermesHome: home,
+      emit: () => {},
+      _download: async (...args) => {
+        downloadArgs = args
+      }
+    })
+
+    assert.deepEqual(downloadArgs, [repository, commit, cachedScriptPath(home, commit)])
+    assert.equal(result.source, 'download')
+  } finally {
+    fs.rmSync(home, { recursive: true, force: true })
+  }
+})
+
+test('resolveInstallScript rejects an unsafe stamped repository before downloading', async () => {
+  const home = mkTmpHome()
+  try {
+    let downloaded = false
+    await assert.rejects(
+      resolveInstallScript({
+        installStamp: { commit: 'c'.repeat(40), repository: 'https://evil.example/repo' },
+        sourceRepoRoot: null,
+        hermesHome: home,
+        emit: () => {},
+        _download: async () => {
+          downloaded = true
+        }
+      }),
+      /repository/i
+    )
+    assert.equal(downloaded, false)
+  } finally {
+    fs.rmSync(home, { recursive: true, force: true })
+  }
+})
+
+test('bootstrap passes the stamped repository to both platform installers', () => {
+  const installStamp = {
+    commit: 'd'.repeat(40),
+    branch: 'product-creative-rebaseline-20260716',
+    repository: 'cynic12138/hermes-agent'
+  }
+
+  assert.deepEqual(buildPinArgs(installStamp), [
+    '-Repository',
+    installStamp.repository,
+    '-Commit',
+    installStamp.commit,
+    '-Branch',
+    installStamp.branch
+  ])
+  assert.deepEqual(
+    buildPosixPinArgs({ installStamp, activeRoot: '/tmp/agent', hermesHome: '/tmp/home' }),
+    [
+      '--dir',
+      '/tmp/agent',
+      '--hermes-home',
+      '/tmp/home',
+      '--repository',
+      installStamp.repository,
+      '--branch',
+      installStamp.branch,
+      '--commit',
+      installStamp.commit
+    ]
+  )
 })
 
 test('resolveInstallScript falls back to the installed agent checkout on a 404', async () => {
