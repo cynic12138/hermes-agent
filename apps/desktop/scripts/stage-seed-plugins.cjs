@@ -1,57 +1,14 @@
 'use strict'
 
-const crypto = require('node:crypto')
 const fs = require('node:fs')
 const path = require('node:path')
 const { spawnSync } = require('node:child_process')
+const { hashPayload, walkFiles } = require('../electron/seed-plugin-contract.cjs')
 
 const NAME_RE = /^[a-z][a-z0-9_]{0,63}$/
 const VERSION_RE = /^[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?$/
 const HASH_RE = /^[0-9a-f]{64}$/
 const COMMIT_RE = /^[0-9a-f]{7,40}$/i
-const MAX_FILE_BYTES = 8 * 1024 * 1024
-
-function walkFiles(root) {
-  const files = []
-  function visit(current) {
-    for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
-      const fullPath = path.join(current, entry.name)
-      const stat = fs.lstatSync(fullPath)
-      if (stat.isSymbolicLink()) {
-        throw new Error(`Seed plugin contains unsafe symlink: ${path.relative(root, fullPath)}`)
-      }
-      if (stat.isDirectory()) {
-        visit(fullPath)
-      } else if (stat.isFile()) {
-        if (stat.size > MAX_FILE_BYTES) {
-          throw new Error(`Seed plugin contains oversized file: ${path.relative(root, fullPath)}`)
-        }
-        files.push(fullPath)
-      } else {
-        throw new Error(`Seed plugin contains unsupported file type: ${path.relative(root, fullPath)}`)
-      }
-    }
-  }
-  visit(root)
-  return files
-}
-
-function hashPayload(root) {
-  const absoluteRoot = path.resolve(root)
-  const files = walkFiles(absoluteRoot)
-    .filter(filePath => path.basename(filePath) !== 'SOURCE.json')
-    .map(filePath => ({
-      filePath,
-      relative: path.relative(absoluteRoot, filePath).split(path.sep).join('/')
-    }))
-    .sort((left, right) => left.relative < right.relative ? -1 : left.relative > right.relative ? 1 : 0)
-  const rows = files.map(({ filePath, relative }) => {
-      const digest = crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex')
-      return `${digest} ${relative}`
-    })
-  return crypto.createHash('sha256').update(rows.join('\n'), 'utf8').digest('hex')
-}
-
 function isWithin(candidate, parent) {
   const relative = path.relative(path.resolve(parent), path.resolve(candidate))
   return relative === '' || (!relative.startsWith(`..${path.sep}`) && relative !== '..' && !path.isAbsolute(relative))
